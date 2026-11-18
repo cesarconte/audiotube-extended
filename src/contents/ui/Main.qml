@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2021 Jonah Brüchert <jbb@kaidan.im>
-//
+// SPDX-FileCopyrightText: 2026 Cesar <yugurta@gmail.com>
 // SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
 
 import QtQuick
@@ -10,64 +10,37 @@ import QtMultimedia
 
 import org.kde.audiotube
 import org.kde.config as KConfig
+import CachyOS.UI
 
-Kirigami.ApplicationWindow {
+CachyWindow {
     id: root
-    minimumWidth: 300
-    minimumHeight: 300
-    pageStack.globalToolBar.style: wideScreen? Kirigami.ApplicationHeaderStyle.None: Kirigami.ApplicationHeaderStyle.Breadcrumb
 
-    color: "transparent"
-    Blur{id:blur}
-    Component.onCompleted: {
-        blur.setBlur(sidebar, true);
+    title: i18n("AudioTube")
+    width: 1080
+    height: 720
+    minimumWidth: 420
+    minimumHeight: 480
 
-        switch (StateConfig.lastOpenedPage) {
-        case 'libraryPage':
-            pageStack.initialPage = pool.loadPage(Qt.resolvedUrl('./LibraryPage.qml'))
-            break;
-        case 'homePage':
-            pageStack.initialPage = pool.loadPage(Qt.resolvedUrl('./HomePage.qml'))
-            break;
-        case 'favourites':
-            pageStack.initialPage = pool.loadPage(Qt.resolvedUrl('./PlaybackHistory.qml#favourites'))
-            break;
-        case 'history':
-            pageStack.initialPage = pool.loadPage(Qt.resolvedUrl('./PlaybackHistory.qml#history'))
-            break;
-        case 'explorePage':
-            pageStack.initialPage = pool.loadPage(Qt.resolvedUrl('./ExplorePage.qml'))
-            break;
-        case 'playlists':
-            pageStack.initialPage = pool.loadPage(Qt.resolvedUrl("./LocalPlaylistsPage.qml"))
-            break;
-        default:
-            if (Kirigami.Settings.isMobile) {
-                pageStack.initialPage = pool.loadPage(Qt.resolvedUrl('./LibraryPage.qml'))
-            } else  {
-                pageStack.initialPage = pool.loadPage(Qt.resolvedUrl('./HomePage.qml'))
-            }
-        }
-    }
+    showTrafficLights: true
+    showTitleBarDivider: true
+    showWindowFrame: true
+    resizable: true
+    cornerRadius: CachyTheme.radiusWindow
+    contentPadded: false
+    sidebarWidth: sidebar.sidebarWidth
+    sidebarVisible: wideScreen
 
-    contentItem.parent.z: (playerFooter.contentY === 0) ? 0 : 2 // HACK: So contents can cover the header. This is only necessary since Qt 6.9.
-
-    pageStack.columnView.columnResizeMode: Kirigami.ColumnView.SingleColumn
-
-    property alias searchField: searchLoader // TODO
+    readonly property alias pageStack: pageStack
+    property alias searchField: searchLoader
     property bool wideScreen: width >= 600
-    property bool showSearch: false // only applicable if not widescreen
+    property bool showSearch: false
+
+    function applicationWindow() {
+        return root;
+    }
 
     KConfig.WindowStateSaver {
         configGroupName: "MainWindow"
-    }
-
-    // so that there is still a separator, since the header style is none
-    Kirigami.Separator {
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        visible: wideScreen
     }
 
     Kirigami.PagePool {
@@ -93,82 +66,6 @@ Kirigami.ApplicationWindow {
         shareMenu.item.open()
     }
 
-    Sidebar {
-        id:sidebar
-        visible: wideScreen
-        height: pageStack.height - playerFooter.implicitHeight
-
-    }
-    NavigationBar{
-        id: bottombar
-        visible: !wideScreen
-    }
-
-    header: Controls.Control {
-        visible: wideScreen || root.showSearch
-        padding: Kirigami.Units.largeSpacing
-
-        background: Rectangle {
-             width: parent.width
-             height: parent.height
-             anchors.fill: parent
-             Kirigami.Theme.inherit: false
-             Kirigami.Theme.colorSet: Kirigami.Theme.Header
-             color:  Kirigami.Theme.backgroundColor
-         }
-
-        contentItem: RowLayout {
-            spacing: 0
-            Row {
-                Layout.alignment: Qt.AlignLeft
-
-                Controls.ToolButton {
-                    id: back
-                    enabled: applicationWindow().pageStack.layers.depth > 1 || (applicationWindow().pageStack.depth > 1 && (applicationWindow().pageStack.currentIndex > 0 || applicationWindow().pageStack.contentItem.contentX > 0)) // Copied from https://invent.kde.org/frameworks/kirigami/-/blob/master/src/controls/templates/private/BackButton.qml#L16
-                    icon.name: "draw-arrow-back"
-                    onClicked: pageStack.goBack()
-                    visible: wideScreen
-                }
-                Controls.ToolButton {
-                    icon.name: "draw-arrow-forward"
-                    enabled: applicationWindow().pageStack.currentIndex < applicationWindow().pageStack.depth-1
-                    onClicked: pageStack.goForward()
-                    visible: wideScreen
-                }
-            }
-
-            // spacer
-            Item {
-                visible: wideScreen
-                Layout.fillWidth: !root.wideScreen
-            }
-            SearchWithDropdown {
-                id: searchLoader
-                visible: root.wideScreen || root.showSearch
-                Layout.alignment: Qt.AlignHCenter
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                height: back.height
-                width: wideScreen ? null : root.width
-                Layout.maximumWidth: wideScreen ? 400 : root.width
-            }
-
-            Item {
-                width: 2*back.width
-                visible: wideScreen
-
-            }
-        }
-    }
-
-    title: i18n("AudioTube")
-
-    contextDrawer: Kirigami.ContextDrawer {
-        id: contextDrawer
-    }
-
-    pageStack.clip: true
-
     function play(videoId) {
         UserPlaylistModel.initialVideoId = videoId
     }
@@ -190,15 +87,124 @@ Kirigami.ApplicationWindow {
         UserPlaylistModel.playPlaybackHistory(model, shuffle)
     }
 
-    function focusSearch(){searchLoader.forceFocus()}
+    function focusSearch() {
+        searchLoader.forceFocus()
+    }
+
+    function showPassiveNotification(message, timeoutMs) {
+        toast.show(message, "info", timeoutMs !== undefined ? timeoutMs : 3000)
+    }
 
     Connections {
         target: ErrorHandler
-
         function onErrorOccurred(error) {
             showPassiveNotification(error)
         }
     }
+
+    // =========================================================================
+    // CABECERA — Navegación atrás / adelante
+    // =========================================================================
+    headerLeading: [
+        RowLayout {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 6
+            visible: root.wideScreen
+
+            CachyToolbarButton {
+                iconName: "draw-arrow-back"
+                tooltipText: i18nc("@action:button", "Back")
+                enabled: pageStack.depth > 1
+                onClicked: pageStack.goBack()
+            }
+            CachyToolbarButton {
+                iconName: "draw-arrow-forward"
+                tooltipText: i18nc("@action:button", "Forward")
+                enabled: pageStack.currentIndex < pageStack.depth - 1
+                onClicked: pageStack.goForward()
+            }
+        }
+    ]
+
+    // =========================================================================
+    // CABECERA — Campo de búsqueda integrado en el centro
+    // =========================================================================
+    headerCenter: [
+        Item {
+            anchors.verticalCenter: parent.verticalCenter
+            height: parent.height
+            width: Math.min(420, root.width - (root.wideScreen ? 340 : 120))
+
+            SearchWithDropdown {
+                id: searchLoader
+                anchors.centerIn: parent
+                width: parent.width
+                height: 32
+                visible: root.wideScreen || root.showSearch
+            }
+        }
+    ]
+
+    // =========================================================================
+    // BARRA LATERAL — Acciones en la cabecera del sidebar (Colapsar/Expandir)
+    // =========================================================================
+    sidebarHeaderActions: [
+        CachyToolbarButton {
+            anchors.verticalCenter: parent.verticalCenter
+            iconName: sidebar.collapsed ? "sidebar-expand-symbolic" : "sidebar-collapse-symbolic"
+            tooltipText: sidebar.collapsed ? i18n("Expand Sidebar") : i18n("Collapse Sidebar")
+            onClicked: sidebar.toggleCollapse()
+        }
+    ]
+
+    // =========================================================================
+    // BARRA LATERAL — Contenido del menú de navegación
+    // =========================================================================
+    sidebar: [
+        Sidebar {
+            id: sidebar
+        }
+    ]
+
+    // =========================================================================
+    // CONTENIDO PRINCIPAL — Pila de páginas y reproductor multimedia
+    // =========================================================================
+    contentData: [
+        Item {
+            anchors.fill: parent
+
+            CachyPageStack {
+                id: pageStack
+                anchors.fill: parent
+                anchors.bottomMargin: root.wideScreen ? playerFooter.minimizedPlayerHeight : (playerFooter.minimizedPlayerHeight + bottombar.height)
+            }
+
+            NavigationBar {
+                id: bottombar
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                visible: !root.wideScreen
+            }
+
+            // Reproductor multimedia inferior
+            PlayerFooter {
+                id: playerFooter
+                anchors.fill: parent
+                footerSpacing: root.wideScreen ? 0 : bottombar.height
+                z: (contentY === 0) ? -1 : 999
+            }
+
+            // Notificación flotante Liquid Glass (reemplaza Kirigami.PassiveNotification)
+            CachyToast {
+                id: toast
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: playerFooter.minimizedPlayerHeight + 20
+                z: 10000
+            }
+        }
+    ]
 
     Component {
         id: searchAlbum
@@ -244,7 +250,6 @@ Kirigami.ApplicationWindow {
                 Rectangle {
                     width: 70
                     height: 70
-
                     color: "transparent"
 
                     ThumbnailSource {
@@ -259,19 +264,15 @@ Kirigami.ApplicationWindow {
                     }
                     Rectangle {
                         id: recSelected
-
                         Rectangle {
                             anchors.fill: parent
                             color: Kirigami.Theme.hoverColor
                             radius: 10
                             opacity: 0.2
                         }
-
                         visible: false
                         anchors.fill: parent
-
                         radius: 9
-
                         border.color: Kirigami.Theme.hoverColor
                         border.width: 2
                         color: "transparent"
@@ -280,7 +281,7 @@ Kirigami.ApplicationWindow {
             }
             Controls.Label {
                 id: searchTitle
-                leftPadding:5
+                leftPadding: 5
                 Layout.maximumWidth: 70
                 text: mpdelegateItem.title
                 elide: Qt.ElideRight
@@ -293,20 +294,6 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    pageStack.anchors.bottomMargin: wideScreen ? playerFooter.minimizedPlayerHeight: playerFooter.minimizedPlayerHeight+bottombar.height
-    pageStack.anchors.leftMargin: wideScreen ? sidebar.width:0
-
-    // media player
-    PlayerFooter {
-        id: playerFooter
-        anchors.topMargin: -root.header.height
-        anchors.fill: parent
-        footerSpacing: wideScreen ? 0 : bottombar.height
-
-        // only expand flicking area to full screen when it is open
-        z: (contentY === 0) ? -1 : 999
-    }
-
     MprisPlayer {
         id: mprisPlayer
         serviceName: "AudioTube"
@@ -317,21 +304,20 @@ Kirigami.ApplicationWindow {
         property alias thumbnail: playerFooter.thumbnail
 
         function next() {
-            if(UserPlaylistModel.canSkip) {
+            if (UserPlaylistModel.canSkip) {
                 UserPlaylistModel.next()
-            }
-            else{
+            } else {
                 playerFooter.audioPlayer.stop()
             }
         }
 
-        //Mpris2 Root interface
+        // Mpris2 Root interface
         identity: root.title
         supportedUriSchemes: []
         supportedMimeTypes: []
         desktopEntry: "org.kde.audiotube"
 
-        //Mpris2 Player Interface
+        // Mpris2 Player Interface
         canControl: true
         canGoNext: UserPlaylistModel.canSkip
         canGoPrevious: UserPlaylistModel.canSkipBack
@@ -347,10 +333,9 @@ Kirigami.ApplicationWindow {
         onPauseRequested: playerFooter.audioPlayer.pause()
         onPlayRequested: playerFooter.audioPlayer.play()
         onPlayPauseRequested: {
-            if(playerFooter.audioPlayer.playbackStatus === MediaPlayer.PlayingState) {
+            if (playerFooter.audioPlayer.playbackStatus === MediaPlayer.PlayingState) {
                 playerFooter.audioPlayer.pause()
-            }
-            else if(playerFooter.PlayingState === MediaPlayer.PausedState) {
+            } else if (playerFooter.PlayingState === MediaPlayer.PausedState) {
                 PlayerFooter.audioPlayer.play()
             }
         }
@@ -359,30 +344,27 @@ Kirigami.ApplicationWindow {
             next()
         }
         onPreviousRequested: {
-            if(UserPlaylistModel.canSkipBack) {
+            if (UserPlaylistModel.canSkipBack) {
                 UserPlaylistModel.previous()
-            }
-            else{
+            } else {
                 playerFooter.audioPlayer.stop()
             }
         }
         onSeekRequested: {
-            if(canSeek) {
-                if(playerFooter.audioPlayer.position + offset/1000 < 0) {
+            if (canSeek) {
+                if (playerFooter.audioPlayer.position + offset/1000 < 0) {
                     playerFooter.audioPlayer.seek(0)
-                }
-                else if(playerFooter.audioPlayer.position + offset/1000 > playerFooter.audioPlayer.duration) {
+                } else if (playerFooter.audioPlayer.position + offset/1000 > playerFooter.audioPlayer.duration) {
                     next()
-                }
-                else {
+                } else {
                     playerFooter.audioPlayer.seek(Math.floor(playerFooter.audioPlayer.position + offset/1000));
                 }
                 emitSeeked()
             }
         }
         onSetPositionRequested: {
-            if(canSeek) {
-                if(position >= 0 && position/1000 <= playerFooter.audioPlayer.duration) {
+            if (canSeek) {
+                if (position >= 0 && position/1000 <= playerFooter.audioPlayer.duration) {
                     playerFooter.audioPlayer.seek(Math.floor(position/1000))
                     emitSeeked()
                 }
@@ -411,6 +393,45 @@ Kirigami.ApplicationWindow {
             var metadata = mprisPlayer.metadata
             metadata[Mpris.metadataToString(Mpris.ArtUrl)] = thumbnail
             mprisPlayer.metadata = metadata
+        }
+    }
+
+    Component.onCompleted: {
+        let page = null;
+        switch (StateConfig.lastOpenedPage) {
+        case 'libraryPage':
+            page = pool.loadPage(Qt.resolvedUrl('./LibraryPage.qml'));
+            break;
+        case 'homePage':
+            page = pool.loadPage(Qt.resolvedUrl('./HomePage.qml'));
+            break;
+        case 'favourites':
+            page = pool.loadPageWithProperties(Qt.resolvedUrl('./PlaybackHistory.qml#favourites'), {
+                "dataModel": Library.favourites,
+                "title": i18n("Favorites"),
+                "objectName": "favourites"
+            });
+            break;
+        case 'history':
+            page = pool.loadPageWithProperties(Qt.resolvedUrl('./PlaybackHistory.qml#history'), {
+                "dataModel": Library.playbackHistory,
+                "title": i18n("Played Songs"),
+                "objectName": "history"
+            });
+            break;
+        case 'explorePage':
+            page = pool.loadPage(Qt.resolvedUrl('./ExplorePage.qml'));
+            break;
+        case 'playlists':
+            page = pool.loadPageWithProperties(Qt.resolvedUrl("./LocalPlaylistsPage.qml"), {
+                "objectName": "playlists"
+            });
+            break;
+        default:
+            page = pool.loadPage(Qt.resolvedUrl('./HomePage.qml'));
+        }
+        if (page) {
+            pageStack.push(page);
         }
     }
 }

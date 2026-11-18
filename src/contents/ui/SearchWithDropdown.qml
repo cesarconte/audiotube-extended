@@ -8,6 +8,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.audiotube
+import CachyOS.UI
 
 Item {
     function forceFocus(){searchField.forceActiveFocus()}
@@ -157,16 +158,14 @@ Item {
 
         background: Kirigami.ShadowedRectangle{
             id: bg
-            Kirigami.Theme.inherit: false
-            Kirigami.Theme.colorSet: Kirigami.Theme.View
-            color: Kirigami.Theme.backgroundColor
-            radius: popup.expansion+2
+            color: CachyPalette.sheetBackground
+            radius: popup.expansion+6
             shadow.size: popup.shadowSize
             shadow.yOffset: popup.expansion
-            shadow.color: Qt.rgba(0, 0, 0, 0.2)
+            shadow.color: Qt.rgba(0, 0, 0, 0.25)
 
             border.width: 1
-            border.color: Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.backgroundColor, Kirigami.Theme.textColor, 0.3);
+            border.color: CachyPalette.specularBorder
             NumberAnimation on radius{
                 id: playOpenRadius
                 easing.type: Easing.OutCubic
@@ -368,13 +367,16 @@ Item {
 
                             id: completionDelegate
                             highlighted: focus || (completionList.selectedDelegate == index)
-                            Kirigami.Theme.colorSet: Kirigami.Theme.View
-                            Kirigami.Theme.inherit: false
                             Layout.fillWidth: true
-                            height: completionList.delegateHeight
+                            height: completionList.delegateHeight + 6
                             text: searchQuery
                             padding: completionList.delegatePadding
                             spacing: 0
+
+                            background: Rectangle {
+                                radius: 6
+                                color: completionDelegate.highlighted ? CachyPalette.surfacePill : "transparent"
+                            }
 
                             contentItem: RowLayout {
                                 Kirigami.Icon {

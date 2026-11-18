@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2022 Mathis Brüchert <mbb@kaidan.im>
-//
+// SPDX-FileCopyrightText: 2026 Cesar <yugurta@gmail.com>
 // SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
 
 import QtQuick
@@ -7,256 +7,154 @@ import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import org.kde.kirigami as Kirigami
 import org.kde.audiotube
+import CachyOS.UI
 
-Rectangle {
-    property int sidebarWidth: 230
-    property int sidebarWidthCollapsed: 60
-    property bool collapsed: true
-
-    // workaround for label not being displayed before collapsed change
-    Component.onCompleted: {
-        collapsed = false
-    }
-
+Item {
     id: sidebar
-    width: sidebarWidth
-    clip:true
-    Kirigami.Theme.colorSet: Kirigami.Theme.Window
-    Kirigami.Theme.inherit: false
-    color: "transparent"
 
-    Rectangle {
-        anchors.fill: parent
-        color: Kirigami.Theme.backgroundColor
-        opacity: 0.8
+    property bool collapsed: false
+    property int sidebarWidthExpanded: 240
+    property int sidebarWidthCollapsed: 64
+    property int sidebarWidth: collapsed ? sidebarWidthCollapsed : sidebarWidthExpanded
+
+    function toggleCollapse() {
+        collapsed = !collapsed;
     }
 
-    NumberAnimation on width{
-        id: collapse
-        easing.type: Easing.OutCubic
-        running: false
-        from: sidebarWidth; to: sidebarWidthCollapsed
-    }
-    NumberAnimation on width{
-        id: show
-        easing.type: Easing.OutCubic
-        running: false
-        from: sidebarWidthCollapsed; to: sidebarWidth
-        //this is only a workaround to stop the text from disappearing
-        onFinished:{
-            libraryButton.checked =!libraryButton.checked
-            libraryButton.checked =!libraryButton.checked
-
-            favouritesButton.checked =!favouritesButton.checked
-            favouritesButton.checked =!favouritesButton.checked
-
-            historyButton.checked =!historyButton.checked
-            historyButton.checked =!historyButton.checked
-
-            searchButton.checked =!searchButton.checked
-            searchButton.checked =!searchButton.checked
-
-            collapseButton.checked =!collapseButton.checked
-            collapseButton.checked =false
-
-            aboutButton.checked = !aboutButton.checked
-            aboutButton.checked = !aboutButton.checked
-
-            playlistsButton.checked = !playlistsButton.checked
-            playlistsButton.checked = !playlistsButton.checked
-        }
-    }
-    Kirigami.Separator {
-        height: parent.height
-        anchors.right: parent.right
-        z:100
-    }
+    anchors.fill: parent
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 0
-
-        Kirigami.Separator {
-            Layout.fillWidth: true
-        }
+        anchors.leftMargin: 8
+        anchors.rightMargin: 8
+        anchors.topMargin: 8
+        anchors.bottomMargin: 8
+        spacing: 4
 
         Controls.ScrollView {
-
             id: scrollView
             Layout.fillWidth: true
             Layout.fillHeight: true
-
             Controls.ScrollBar.vertical.policy: Controls.ScrollBar.AlwaysOff
             Controls.ScrollBar.horizontal.policy: Controls.ScrollBar.AlwaysOff
-            contentWidth: -1 // disable horizontal scroll
+            contentWidth: -1
 
             ColumnLayout {
                 id: column
                 width: scrollView.width
-                spacing: 0
+                spacing: 4
 
-                Kirigami.NavigationTabButton {
+                CachySidebarItem {
                     id: homeButton
-                    Layout.fillWidth: true
-                    width: column.width - column.Layout.leftMargin - column.Layout.rightMargin
-                    implicitHeight: 50
-                    display: collapsed ? Controls.AbstractButton.IconOnly : Controls.AbstractButton.TextBesideIcon
-                    checked: pageStack.currentItem && pageStack.currentItem.objectName == "homePage"
-
-                    action: Kirigami.PagePoolAction {
-                        pagePool: pool
-                        text: i18n("Home")
-                        icon.name: "user-home-symbolic"
-                        page: Qt.resolvedUrl("./HomePage.qml")
-                    }
-                }
-
-                Kirigami.NavigationTabButton {
-                    id: libraryButton
-                    Layout.fillWidth: true
-                    width: column.width - column.Layout.leftMargin - column.Layout.rightMargin
-                    implicitHeight: 50
-                    display: collapsed ? Controls.AbstractButton.IconOnly : Controls.AbstractButton.TextBesideIcon
-                    checked: pageStack.currentItem && pageStack.currentItem.objectName == "libraryPage"
-
-                    action: Kirigami.PagePoolAction {
-                        pagePool: pool
-                        text: i18n("Library")
-                        icon.name: "file-library-symbolic"
-                        page: Qt.resolvedUrl("./LibraryPage.qml")
-                    }
-                }
-
-                Kirigami.NavigationTabButton {
-                    id: searchButton
-                    Layout.fillWidth: true
-                    width: column.width - column.Layout.leftMargin - column.Layout.rightMargin
-                    implicitHeight: 50
-                    display: collapsed ? Controls.AbstractButton.IconOnly : Controls.AbstractButton.TextBesideIcon
-                    text: i18n("Search")
-                    icon.name: "search"
-                    checked: pageStack.currentItem && pageStack.currentItem.objectName == "searchPage"
+                    text: i18n("Home")
+                    iconName: "user-home-symbolic"
+                    showText: !sidebar.collapsed
+                    selected: pageStack.currentItem && pageStack.currentItem.objectName === "homePage"
                     onClicked: {
-                        searchField.forceActiveFocus()
-                        focusSearch()
+                        pageStack.clear();
+                        pageStack.push(pool.loadPage(Qt.resolvedUrl("./HomePage.qml")));
                     }
                 }
 
-                Kirigami.NavigationTabButton {
-                    id: favouritesButton
-                    Layout.fillWidth: true
-                    width: column.width - column.Layout.leftMargin - column.Layout.rightMargin
-                    implicitHeight: 50
-                    display: collapsed ? Controls.AbstractButton.IconOnly : Controls.AbstractButton.TextBesideIcon
-                    checked: pageStack.currentItem && pageStack.currentItem.objectName == "favourites"
+                CachySidebarItem {
+                    id: libraryButton
+                    text: i18n("Library")
+                    iconName: "file-library-symbolic"
+                    showText: !sidebar.collapsed
+                    selected: pageStack.currentItem && pageStack.currentItem.objectName === "libraryPage"
+                    onClicked: {
+                        pageStack.clear();
+                        pageStack.push(pool.loadPage(Qt.resolvedUrl("./LibraryPage.qml")));
+                    }
+                }
 
-                    action: Kirigami.PagePoolAction {
-                        pagePool: pool
-                        text: i18n("Favorites")
-                        icon.name: "non-starred-symbolic"
-                        page: Qt.resolvedUrl("./PlaybackHistory.qml#favourites")
-                        initialProperties: {
+                CachySidebarItem {
+                    id: searchButton
+                    text: i18n("Search")
+                    iconName: "search"
+                    showText: !sidebar.collapsed
+                    selected: pageStack.currentItem && pageStack.currentItem.objectName === "searchPage"
+                    onClicked: {
+                        searchField.forceActiveFocus();
+                        focusSearch();
+                    }
+                }
+
+                CachySidebarItem {
+                    id: favouritesButton
+                    text: i18n("Favorites")
+                    iconName: "non-starred-symbolic"
+                    showText: !sidebar.collapsed
+                    selected: pageStack.currentItem && pageStack.currentItem.objectName === "favourites"
+                    onClicked: {
+                        pageStack.clear();
+                        pageStack.push(pool.loadPageWithProperties(Qt.resolvedUrl("./PlaybackHistory.qml#favourites"), {
                             "dataModel": Library.favourites,
                             "title": i18n("Favorites"),
                             "objectName": "favourites"
-                        }
+                        }));
                     }
                 }
 
-                Kirigami.NavigationTabButton {
+                CachySidebarItem {
                     id: exploreButton
-                    Layout.fillWidth: true
-                    width: column.width - column.Layout.leftMargin - column.Layout.rightMargin
-                    implicitHeight: 50
-                    display: collapsed ? Controls.AbstractButton.IconOnly : Controls.AbstractButton.TextBesideIcon
-                    checked: pageStack.currentItem && pageStack.currentItem.objectName == "explorePage"
-
-                    action: Kirigami.PagePoolAction {
-                        pagePool: pool
-                        text: i18n("Explore")
-                        icon.name: "globe-symbolic"
-                        page: Qt.resolvedUrl("./ExplorePage.qml")
+                    text: i18n("Explore")
+                    iconName: "globe-symbolic"
+                    showText: !sidebar.collapsed
+                    selected: pageStack.currentItem && pageStack.currentItem.objectName === "explorePage"
+                    onClicked: {
+                        pageStack.clear();
+                        pageStack.push(pool.loadPage(Qt.resolvedUrl("./ExplorePage.qml")));
                     }
                 }
 
-                Kirigami.NavigationTabButton {
+                CachySidebarItem {
                     id: historyButton
-                    Layout.fillWidth: true
-                    width: column.width - column.Layout.leftMargin - column.Layout.rightMargin
-                    implicitHeight: 50
-                    display: collapsed ? Controls.AbstractButton.IconOnly : Controls.AbstractButton.TextBesideIcon
-                    checked: pageStack.currentItem && pageStack.currentItem.objectName == "history"
-
-                    action: Kirigami.PagePoolAction {
-                        pagePool: pool
-                        text: i18n("Played Songs")
-                        icon.name: "edit-undo-history"
-                        page: Qt.resolvedUrl("./PlaybackHistory.qml#history")
-                        initialProperties: {
+                    text: i18n("Played Songs")
+                    iconName: "edit-undo-history"
+                    showText: !sidebar.collapsed
+                    selected: pageStack.currentItem && pageStack.currentItem.objectName === "history"
+                    onClicked: {
+                        pageStack.clear();
+                        pageStack.push(pool.loadPageWithProperties(Qt.resolvedUrl("./PlaybackHistory.qml#history"), {
                             "dataModel": Library.playbackHistory,
                             "title": i18n("Played Songs"),
                             "objectName": "history"
-                        }
+                        }));
                     }
                 }
-                Kirigami.NavigationTabButton {
+
+                CachySidebarItem {
                     id: playlistsButton
-                    Layout.fillWidth: true
-                    width: column.width - column.Layout.leftMargin - column.Layout.rightMargin
-                    implicitHeight: 50
-                    display: collapsed ? Controls.AbstractButton.IconOnly : Controls.AbstractButton.TextBesideIcon
-                    checked: pageStack.currentItem && pageStack.currentItem.objectName == "playlists"
-
-                    action: Kirigami.PagePoolAction {
-                        pagePool: pool
-                        text: i18n("Playlists")
-                        icon.name: "amarok_playlist"
-                        page: Qt.resolvedUrl("./LocalPlaylistsPage.qml")
-                        initialProperties: {
+                    text: i18n("Playlists")
+                    iconName: "amarok_playlist"
+                    showText: !sidebar.collapsed
+                    selected: pageStack.currentItem && pageStack.currentItem.objectName === "playlists"
+                    onClicked: {
+                        pageStack.clear();
+                        pageStack.push(pool.loadPageWithProperties(Qt.resolvedUrl("./LocalPlaylistsPage.qml"), {
                             "objectName": "playlists"
-                        }
+                        }));
                     }
                 }
             }
         }
-        Kirigami.Separator {
+
+        CachyDivider {
             Layout.fillWidth: true
-            Layout.rightMargin: Kirigami.Units.smallSpacing
-            Layout.leftMargin: Kirigami.Units.smallSpacing
+            Layout.leftMargin: 4
+            Layout.rightMargin: 4
         }
-        Kirigami.NavigationTabButton {
+
+        CachySidebarItem {
             id: aboutButton
-            Layout.fillWidth: true
-            width: column.width - column.Layout.leftMargin - column.Layout.rightMargin
-            implicitHeight: 50
-            display: collapsed ? Controls.AbstractButton.IconOnly : Controls.AbstractButton.TextBesideIcon
             text: i18n("About")
-            checkable: false
-            icon.name: "help-about-symbolic"
-
+            iconName: "help-about-symbolic"
+            showText: !sidebar.collapsed
+            selected: false
             onClicked: {
-                pageStack.pushDialogLayer(Qt.createComponent("org.kde.kirigamiaddons.formcard", "AboutPage"))
+                pageStack.pushDialogLayer(Qt.createComponent("org.kde.kirigamiaddons.formcard", "AboutPage"));
             }
-        }
-
-        Kirigami.NavigationTabButton {
-            id: collapseButton
-            Layout.fillWidth: true
-            width: column.width - column.Layout.leftMargin - column.Layout.rightMargin
-            display: collapsed ? Controls.AbstractButton.IconOnly : Controls.AbstractButton.TextBesideIcon
-            text: i18n("Collapse Sidebar")
-            checked: collapsed == true
-            implicitHeight: 50
-            icon.name: "sidebar-collapse"
-            onClicked: {
-                if (!sidebar.collapsed)
-                    collapse.running = true
-                else
-                    show.running = true
-
-                sidebar.collapsed = !sidebar.collapsed
-            }
-
         }
     }
 }

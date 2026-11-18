@@ -13,6 +13,7 @@ import QtMultimedia
 
 import org.kde.kirigami as Kirigami
 import org.kde.audiotube
+import CachyOS.UI
 
 Flickable {
     id: footerItem
@@ -187,11 +188,20 @@ Flickable {
             background: Item {
                 Rectangle {
                     anchors.fill: parent
-                    color: Qt.rgba(25, 25, 30, 1)
+                    color: CachyPalette.isDark ? Qt.rgba(0.08, 0.08, 0.12, 0.88) : Qt.rgba(0.96, 0.96, 0.98, 0.88)
+                }
+
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 1
+                    color: CachyPalette.hardDividerColor
+                    z: 10
                 }
 
                 Image {
-                    opacity: 0.2
+                    opacity: 0.18
                     source: thumbnailSource.cachedPath
                     asynchronous: true
 

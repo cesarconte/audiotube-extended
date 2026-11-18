@@ -10,6 +10,7 @@ import QtMultimedia
 
 import org.kde.kirigami as Kirigami
 import org.kde.audiotube
+import CachyOS.UI
 
 Item {
     id: root
@@ -34,7 +35,7 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         height: root.progressBarHeight
-        color: Kirigami.Theme.highlightColor
+        color: CachyTheme.accentColor
         width: parent.width * (audio?.position / audio?.duration)
     }
 
@@ -116,10 +117,7 @@ Item {
                     horizontalAlignment: Text.AlignLeft
                     elide: Text.ElideRight
                     maximumLineCount: 1
-                    // Hardcoded because the footerbar blur always makes a dark-ish
-                    // background, so we don't want to use a color scheme color that
-                    // might also be dark
-                    color: Kirigami.Theme.textColor
+                    color: CachyPalette.text
                     font.weight: Font.Bold
                 }
 
@@ -132,10 +130,7 @@ Item {
                     horizontalAlignment: Text.AlignLeft
                     elide: Text.ElideRight
                     maximumLineCount: 1
-                    // Hardcoded because the footerbar blur always makes a dark-ish
-                    // background, so we don't want to use a color scheme color that
-                    // might also be dark
-                    color: Kirigami.Theme.disabledTextColor
+                    color: CachyPalette.textSecondary
                 }
             }
         }
@@ -158,20 +153,17 @@ Item {
         spacing: 2
 
         Label {
-            color: "white"
+            color: CachyPalette.textSecondary
             visible: info.title && root.isWidescreen
             text: PlayerUtils.formatTimestamp(audio.position)
-            Layout.rightMargin: 20
+            Layout.rightMargin: 16
         }
 
         Button {
             id: skipBackwardButton
-            implicitHeight: 40
-            implicitWidth: 40
+            implicitHeight: 36
+            implicitWidth: 38
             Layout.fillHeight: !isWidescreen
-
-            Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-            Kirigami.Theme.inherit: false
 
             enabled: UserPlaylistModel.canSkipBack
             onClicked: UserPlaylistModel.previous()
@@ -179,127 +171,85 @@ Item {
             contentItem: Item {
                 Kirigami.Icon {
                     anchors.centerIn: parent
-                    source:"media-skip-backward"
-                    color: "white"
-                    width: Kirigami.Units.gridUnit
-                    height: Kirigami.Units.gridUnit
+                    source: "media-skip-backward"
+                    color: skipBackwardButton.enabled ? CachyPalette.text : CachyPalette.textMuted
+                    width: 16
+                    height: 16
                 }
             }
 
             background: Kirigami.ShadowedRectangle {
-                corners.topLeftRadius: isWidescreen ? 7 : 0
-                corners.bottomLeftRadius: isWidescreen ? 7 : 0
+                corners.topLeftRadius: isWidescreen ? 8 : 0
+                corners.bottomLeftRadius: isWidescreen ? 8 : 0
 
-                color: if (isWidescreen) {
-                    if (parent.down) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.3)
-                    } else if(parent.hovered) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
-                    } else {
-                        Qt.rgba(1, 1, 1, 0.2)
-                    }
-                } else {
-                    if (parent.down) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.3)
-                    } else if (parent.hovered){
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
-                    } else {
-                        "transparent"
-                    }
+                color: {
+                    if (skipBackwardButton.down) return CachyTheme.withAlpha(CachyTheme.accentColor, 0.3);
+                    if (skipBackwardButton.hovered) return CachyPalette.surfacePill;
+                    return isWidescreen ? (CachyPalette.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06)) : "transparent";
                 }
             }
         }
 
         Button {
             id: playPauseButton
-            implicitHeight: 40
-            implicitWidth: 60
+            implicitHeight: 36
+            implicitWidth: 50
             Layout.fillHeight: !isWidescreen
 
             onClicked: audio.playbackState === MediaPlayer.PlayingState ? audio.pause() : audio.play()
             contentItem: Item {
                 Kirigami.Icon {
-                    anchors.centerIn:parent
+                    anchors.centerIn: parent
                     source: audio.playbackState === MediaPlayer.PlayingState ? "media-playback-pause" : "media-playback-start"
-                    color: "white"
-                    width: Kirigami.Units.gridUnit
-                    height: Kirigami.Units.gridUnit
+                    color: CachyPalette.text
+                    width: 18
+                    height: 18
                 }
             }
 
             background: Kirigami.ShadowedRectangle {
-                color: if (isWidescreen) {
-                    if (parent.down) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.3)
-                    } else if (parent.hovered) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
-                    } else {
-                        Qt.rgba(1, 1, 1, 0.2)
-                    }
-                } else {
-                    if (parent.down) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.3)
-                    } else if (parent.hovered) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
-                    } else {
-                        "transparent"
-                    }
+                color: {
+                    if (playPauseButton.down) return CachyTheme.withAlpha(CachyTheme.accentColor, 0.3);
+                    if (playPauseButton.hovered) return CachyPalette.surfacePill;
+                    return isWidescreen ? (CachyPalette.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06)) : "transparent";
                 }
-
             }
-
         }
 
         Button {
             id: skipForwardButton
-            implicitHeight: 40
-            implicitWidth: 40
+            implicitHeight: 36
+            implicitWidth: 38
             Layout.fillHeight: !isWidescreen
             Layout.rightMargin: isWidescreen ? 0 : 10
-            Layout.alignment: !Qt.AlignVCenter
-
-            Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-            Kirigami.Theme.inherit: false
 
             enabled: UserPlaylistModel.canSkip
             onClicked: UserPlaylistModel.next()
             contentItem: Item {
                 Kirigami.Icon {
                     anchors.centerIn: parent
-                    source:"media-skip-forward"
-                    color: "white"
-                    width: Kirigami.Units.gridUnit
-                    height: Kirigami.Units.gridUnit
+                    source: "media-skip-forward"
+                    color: skipForwardButton.enabled ? CachyPalette.text : CachyPalette.textMuted
+                    width: 16
+                    height: 16
                 }
             }
             background: Kirigami.ShadowedRectangle {
-                corners.topRightRadius: isWidescreen ? 7 : 0
-                corners.bottomRightRadius: isWidescreen ? 7 : 0
-                color: if (isWidescreen) {
-                    if (parent.down) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.3)
-                    } else if (parent.hovered) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
-                    } else {
-                        Qt.rgba(1, 1, 1, 0.2)
-                    }
-                } else {
-                    if (parent.down) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.3)
-                    } else if(parent.hovered) {
-                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
-                    } else {
-                        "transparent"
-                    }
+                corners.topRightRadius: isWidescreen ? 8 : 0
+                corners.bottomRightRadius: isWidescreen ? 8 : 0
+                color: {
+                    if (skipForwardButton.down) return CachyTheme.withAlpha(CachyTheme.accentColor, 0.3);
+                    if (skipForwardButton.hovered) return CachyPalette.surfacePill;
+                    return isWidescreen ? (CachyPalette.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.06)) : "transparent";
                 }
             }
         }
 
         Label {
-            color: "white"
+            color: CachyPalette.textSecondary
             visible: info.title && root.isWidescreen
             text: PlayerUtils.formatTimestamp(audio.duration)
-            Layout.leftMargin: 20
+            Layout.leftMargin: 16
         }
     }
 }
