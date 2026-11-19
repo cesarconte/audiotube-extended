@@ -36,8 +36,8 @@ ColumnLayout {
                 row: 0
                 HeroCard {
                     Layout.topMargin: Kirigami.Units.largeSpacing
-                    onPlayClicked: root.contentModel.triggerItem(choice.index)
-                    onOpenClicked: root.contentModel.triggerItem(choice.index)
+                    onPlayClicked: root.contentModel.triggerItem(0)
+                    onOpenClicked: root.contentModel.triggerItem(0)
                 }
             }
         }

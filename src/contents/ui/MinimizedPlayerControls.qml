@@ -196,11 +196,19 @@ Item {
             implicitWidth: 50
             Layout.fillHeight: !isWidescreen
 
-            onClicked: audio.playbackState === MediaPlayer.PlayingState ? audio.pause() : audio.play()
+            onClicked: {
+                if (audio) {
+                    if (audio.playbackState === MediaPlayer.PlayingState) {
+                        audio.pause();
+                    } else {
+                        audio.play();
+                    }
+                }
+            }
             contentItem: Item {
                 Kirigami.Icon {
                     anchors.centerIn: parent
-                    source: audio.playbackState === MediaPlayer.PlayingState ? "media-playback-pause" : "media-playback-start"
+                    source: audio && audio.playbackState === MediaPlayer.PlayingState ? "media-playback-pause" : "media-playback-start"
                     color: CachyPalette.text
                     width: 18
                     height: 18

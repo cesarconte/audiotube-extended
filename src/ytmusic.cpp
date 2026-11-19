@@ -60,7 +60,22 @@ struct UNEXPORT YTMusicPrivate {
     py::object get_ytdl() {
         // lazy initialization
         if (ytdl.is_none()) {
-             ytdl = py::module::import("yt_dlp").attr("YoutubeDL")(py::dict());
+            py::dict extractor_args;
+            py::dict youtube_args;
+            py::list player_clients;
+            player_clients.append("mweb");
+            player_clients.append("android");
+            player_clients.append("web");
+            player_clients.append("tv");
+            youtube_args["player_client"] = player_clients;
+            extractor_args["youtube"] = youtube_args;
+
+            py::dict opts;
+            opts["extractor_args"] = extractor_args;
+            opts["quiet"] = true;
+            opts["no_warnings"] = true;
+
+            ytdl = py::module::import("yt_dlp").attr("YoutubeDL")(opts);
         }
 
         return ytdl;
@@ -726,13 +741,13 @@ video_info::VideoInfo YTMusic::extract_video_info(const std::string &video_id) c
     const auto info = d->get_ytdl().attr("extract_info")(video_id, "download"_a=py::bool_(false));
     
     return {
-        info["id"].cast<std::string>(),
-        info["title"].cast<std::string>(),
+        info.contains("id") ? info["id"].cast<std::string>() : video_id,
+        info.contains("title") ? info["title"].cast<std::string>() : "",
         info.contains("artist") ? info["artist"].cast<std::string>() : "",
         info.contains("album") ? info["album"].cast<std::string>() : "",
         info.contains("channel") ? info["channel"].cast<std::string>() : "",
-        extract_py_list<video_info::Format>(info["formats"]),
-        info["thumbnail"].cast<std::string>()
+        info.contains("formats") ? extract_py_list<video_info::Format>(info["formats"]) : std::vector<video_info::Format>{},
+        info.contains("thumbnail") ? info["thumbnail"].cast<std::string>() : ""
     };
 }
 

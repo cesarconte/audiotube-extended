@@ -129,7 +129,7 @@ Flickable {
     }
 
     property MediaPlayer audioPlayer: audioLoader.item
-    property AudioOutput audioOutput: audioLoader.item.audioOutput
+    property AudioOutput audioOutput: audioLoader.item ? audioLoader.item.audioOutput : null
 
     Loader {
         id: audioLoader
@@ -140,7 +140,11 @@ Flickable {
 
             property int prevPlaybackState: MediaPlayer.StoppedState
             source: info.audioUrl
-            onSourceChanged: play()
+            onSourceChanged: {
+                if (source && source.toString().length > 0) {
+                    play();
+                }
+            }
 
             onPlaybackStateChanged : {
                 if (mediaStatus == MediaPlayer.BufferingMedia && playbackState == MediaPlayer.StoppedState && prevPlaybackState == MediaPlayer.PlayingState) {

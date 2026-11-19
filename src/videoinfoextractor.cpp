@@ -31,8 +31,11 @@ VideoInfoExtractor::VideoInfoExtractor(QObject *parent)
 
 QUrl VideoInfoExtractor::audioUrl() const
 {
+    if (m_videoId.isEmpty()) {
+        return {};
+    }
+
     if (m_videoInfo.formats.empty()) {
-        qWarning() << "No formats found";
         return {};
     }
 

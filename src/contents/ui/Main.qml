@@ -315,25 +315,27 @@ CachyWindow {
         canControl: true
         canGoNext: UserPlaylistModel.canSkip
         canGoPrevious: UserPlaylistModel.canSkipBack
-        canPause: playerFooter.audioPlayer.status !== MediaPlayer.NoMedia
-        canPlay: playerFooter.audioPlayer.status !== MediaPlayer.NoMedia
+        canPause: playerFooter.audioPlayer ? playerFooter.audioPlayer.status !== MediaPlayer.NoMedia : false
+        canPlay: playerFooter.audioPlayer ? playerFooter.audioPlayer.status !== MediaPlayer.NoMedia : false
         canSeek: false
 
-        playbackStatus: playerFooter.audioPlayer.playbackState === MediaPlayer.PlayingState ? Mpris.Playing : (playerFooter.audioPlayer.playbackState == MediaPlayer.PausedState ? Mpris.Paused : Mpris.Stopped)
+        playbackStatus: (playerFooter.audioPlayer && playerFooter.audioPlayer.playbackState === MediaPlayer.PlayingState) ? Mpris.Playing : ((playerFooter.audioPlayer && playerFooter.audioPlayer.playbackState === MediaPlayer.PausedState) ? Mpris.Paused : Mpris.Stopped)
         shuffle: false
-        volume: playerFooter.audioOutput.muted ? 0.0 : playerFooter.audioOutput.volume
-        position: playerFooter.audioPlayer.position * 1000
+        volume: playerFooter.audioOutput ? (playerFooter.audioOutput.muted ? 0.0 : playerFooter.audioOutput.volume) : 1.0
+        position: playerFooter.audioPlayer ? playerFooter.audioPlayer.position * 1000 : 0
 
-        onPauseRequested: playerFooter.audioPlayer.pause()
-        onPlayRequested: playerFooter.audioPlayer.play()
+        onPauseRequested: if (playerFooter.audioPlayer) playerFooter.audioPlayer.pause()
+        onPlayRequested: if (playerFooter.audioPlayer) playerFooter.audioPlayer.play()
         onPlayPauseRequested: {
-            if (playerFooter.audioPlayer.playbackStatus === MediaPlayer.PlayingState) {
-                playerFooter.audioPlayer.pause()
-            } else if (playerFooter.PlayingState === MediaPlayer.PausedState) {
-                PlayerFooter.audioPlayer.play()
+            if (playerFooter.audioPlayer) {
+                if (playerFooter.audioPlayer.playbackState === MediaPlayer.PlayingState) {
+                    playerFooter.audioPlayer.pause()
+                } else {
+                    playerFooter.audioPlayer.play()
+                }
             }
         }
-        onStopRequested: playerFooter.audioPlayer.stop()
+        onStopRequested: if (playerFooter.audioPlayer) playerFooter.audioPlayer.stop()
         onNextRequested: {
             next()
         }
