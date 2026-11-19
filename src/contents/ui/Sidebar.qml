@@ -12,6 +12,22 @@ import CachyOS.UI
 Item {
     id: sidebar
 
+    property bool collapsed: false
+    property int sidebarWidthExpanded: 240
+    property int sidebarWidthCollapsed: 84
+    property int sidebarWidth: collapsed ? sidebarWidthCollapsed : sidebarWidthExpanded
+
+    Behavior on sidebarWidth {
+        NumberAnimation {
+            duration: CachyTheme.animFast
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    function toggleCollapse() {
+        collapsed = !collapsed;
+    }
+
     anchors.fill: parent
 
     ColumnLayout {
@@ -39,6 +55,7 @@ Item {
                     id: homeButton
                     text: i18n("Home")
                     iconName: "user-home-symbolic"
+                    showText: !sidebar.collapsed
                     selected: pageStack.currentItem && pageStack.currentItem.objectName === "homePage"
                     onClicked: {
                         pageStack.clear();
@@ -50,6 +67,7 @@ Item {
                     id: libraryButton
                     text: i18n("Library")
                     iconName: "file-library-symbolic"
+                    showText: !sidebar.collapsed
                     selected: pageStack.currentItem && pageStack.currentItem.objectName === "libraryPage"
                     onClicked: {
                         pageStack.clear();
@@ -61,6 +79,7 @@ Item {
                     id: searchButton
                     text: i18n("Search")
                     iconName: "search"
+                    showText: !sidebar.collapsed
                     selected: pageStack.currentItem && pageStack.currentItem.objectName === "searchPage"
                     onClicked: {
                         searchField.forceActiveFocus();
@@ -72,6 +91,7 @@ Item {
                     id: favouritesButton
                     text: i18n("Favorites")
                     iconName: "non-starred-symbolic"
+                    showText: !sidebar.collapsed
                     selected: pageStack.currentItem && pageStack.currentItem.objectName === "favourites"
                     onClicked: {
                         pageStack.clear();
@@ -87,6 +107,7 @@ Item {
                     id: exploreButton
                     text: i18n("Explore")
                     iconName: "globe-symbolic"
+                    showText: !sidebar.collapsed
                     selected: pageStack.currentItem && pageStack.currentItem.objectName === "explorePage"
                     onClicked: {
                         pageStack.clear();
@@ -98,6 +119,7 @@ Item {
                     id: historyButton
                     text: i18n("Played Songs")
                     iconName: "edit-undo-history"
+                    showText: !sidebar.collapsed
                     selected: pageStack.currentItem && pageStack.currentItem.objectName === "history"
                     onClicked: {
                         pageStack.clear();
@@ -113,6 +135,7 @@ Item {
                     id: playlistsButton
                     text: i18n("Playlists")
                     iconName: "amarok_playlist"
+                    showText: !sidebar.collapsed
                     selected: pageStack.currentItem && pageStack.currentItem.objectName === "playlists"
                     onClicked: {
                         pageStack.clear();
@@ -134,6 +157,7 @@ Item {
             id: aboutButton
             text: i18n("About")
             iconName: "help-about-symbolic"
+            showText: !sidebar.collapsed
             selected: false
             onClicked: {
                 pageStack.pushDialogLayer(Qt.createComponent("org.kde.kirigamiaddons.formcard", "AboutPage"));
