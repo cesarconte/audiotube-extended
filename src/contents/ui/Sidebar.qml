@@ -134,7 +134,7 @@ Item {
             iconName: "help-about-symbolic"
             selected: false
             onClicked: {
-                pageStack.pushDialogLayer(Qt.createComponent("org.kde.audiotube", "AboutPage"));
+                pageStack.pushDialogLayer(Qt.resolvedUrl("AboutPage.qml"));
             }
         }
     }

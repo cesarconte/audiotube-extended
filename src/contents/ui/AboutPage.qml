@@ -13,6 +13,39 @@ CachyScrollablePage {
     title: i18n("About AudioTube Extended")
     objectName: "aboutPage"
 
+    function close() {
+        if (root.pageStack && root.pageStack.layers && root.pageStack.layers.depth > 0) {
+            root.pageStack.layers.pop();
+        } else if (root.parent && typeof root.parent.pop === "function") {
+            root.parent.pop();
+        } else if (typeof pageStack !== "undefined" && pageStack && pageStack.layers && pageStack.layers.depth > 0) {
+            pageStack.layers.pop();
+        } else if (typeof pageStack !== "undefined" && pageStack && pageStack.depth > 1) {
+            pageStack.pop();
+        }
+    }
+
+    header: Item {
+        implicitHeight: 44
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: CachyTheme.marginWindow
+            anchors.rightMargin: CachyTheme.marginWindow
+
+            CachyHeading {
+                Layout.fillWidth: true
+                text: i18n("Acerca de")
+                level: 3
+            }
+
+            CachyToolbarButton {
+                iconName: "window-close-symbolic"
+                tooltipText: i18n("Cerrar")
+                onClicked: root.close()
+            }
+        }
+    }
+
     contentColumn.spacing: CachyTheme.spacingLarge
 
     ColumnLayout {
@@ -201,14 +234,8 @@ CachyScrollablePage {
         CachyButton {
             anchors.centerIn: parent
             text: i18n("Cerrar")
-            accent: true
-            onClicked: {
-                if (pageStack && pageStack.layers && pageStack.layers.depth > 0) {
-                    pageStack.layers.pop();
-                } else if (pageStack && pageStack.depth > 1) {
-                    pageStack.pop();
-                }
-            }
+            primary: true
+            onClicked: root.close()
         }
     }
 }
