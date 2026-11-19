@@ -60,18 +60,7 @@ struct UNEXPORT YTMusicPrivate {
     py::object get_ytdl() {
         // lazy initialization
         if (ytdl.is_none()) {
-            py::dict extractor_args;
-            py::dict youtube_args;
-            py::list player_clients;
-            player_clients.append("mweb");
-            player_clients.append("android");
-            player_clients.append("web");
-            player_clients.append("tv");
-            youtube_args["player_client"] = player_clients;
-            extractor_args["youtube"] = youtube_args;
-
             py::dict opts;
-            opts["extractor_args"] = extractor_args;
             opts["quiet"] = true;
             opts["no_warnings"] = true;
 

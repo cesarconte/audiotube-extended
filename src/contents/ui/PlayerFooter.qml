@@ -140,11 +140,7 @@ Flickable {
 
             property int prevPlaybackState: MediaPlayer.StoppedState
             source: info.audioUrl
-            onSourceChanged: {
-                if (source && source.toString().length > 0) {
-                    play();
-                }
-            }
+            onSourceChanged: play()
 
             onPlaybackStateChanged : {
                 if (mediaStatus == MediaPlayer.BufferingMedia && playbackState == MediaPlayer.StoppedState && prevPlaybackState == MediaPlayer.PlayingState) {
