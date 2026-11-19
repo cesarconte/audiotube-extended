@@ -79,7 +79,7 @@ Item{
     Components.BottomDrawer {
         id: inputDrawer
 
-        parent: applicationWindow().overlay
+        parent: applicationWindow().overlayItem
 
         drawerContentItem: Purpose.AlternativesView {
             id: drawerView

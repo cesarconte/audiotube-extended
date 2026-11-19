@@ -28,7 +28,7 @@ Kirigami.ScrollablePage {
     Components.BottomDrawer{
         id: drawer
 
-        parent: applicationWindow().overlay
+        parent: applicationWindow().overlayItem
 
         property var modelData
         drawerContentItem: ColumnLayout {
@@ -142,7 +142,7 @@ Kirigami.ScrollablePage {
                 Components.BottomDrawer {
                     id: favDrawer
 
-                    parent: applicationWindow().overlay
+                    parent: applicationWindow().overlayItem
 
                     drawerContentItem: ColumnLayout {
                         KirigamiDelegates.SubtitleDelegate{

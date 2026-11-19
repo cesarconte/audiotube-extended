@@ -19,7 +19,7 @@ Flickable {
     id: footerItem
 
     property int footerSpacing: 0
-    property bool maximized: false
+    property bool maximized: contentY >= height * 0.5
 
     readonly property int progressBarHeight: 3
     readonly property int minimizedPlayerContentHeight: 64
@@ -27,6 +27,7 @@ Flickable {
 
     readonly property string thumbnail: thumbnailSource.cachedPath
 
+    clip: true
     boundsBehavior: Flickable.StopAtBounds
 
     function close() {
@@ -206,6 +207,8 @@ Flickable {
             Layout.fillWidth: true
             padding: 0
             implicitHeight: footerItem.minimizedPlayerHeight + footerSpacing
+            visible: opacity > 0.005
+            opacity: Math.max(0.0, 1.0 - (footerItem.contentY / Math.max(1, footerItem.minimizedPlayerHeight)))
 
             // Minimized player background: pure Liquid Glass surface with high contrast
             background: Rectangle {

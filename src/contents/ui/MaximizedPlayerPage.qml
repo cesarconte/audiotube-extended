@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2020-2022 Devin Lin <devin@kde.org>
+// SPDX-FileCopyrightText: 2026 Cesar <yugurta@gmail.com>
 //
 // SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
 
 import QtQuick
 import QtQuick.Effects
-import QtQuick.Controls
+import QtQuick.Controls as Controls
 import QtQuick.Layouts
 
 import QtMultimedia
@@ -12,6 +13,7 @@ import QtMultimedia
 import org.kde.kirigami as Kirigami
 import org.kde.kirigamiaddons.components as Components
 import org.kde.audiotube
+import CachyOS.UI
 
 Item {
     id: root
@@ -21,858 +23,675 @@ Item {
     required property LyricsModel syncedLyrics
     required property string thumbnail
     readonly property bool isWidescreen: width >= Kirigami.Units.gridUnit * 50
+    readonly property bool wideScreen: isWidescreen
 
     signal requestClose()
 
-    onWidthChanged: {sideDrawer.Layout.minimumWidth = -1}
+    onWidthChanged: { sideDrawer.Layout.minimumWidth = -1 }
 
-    // background image
+    // =========================================================================
+    // FONDO — Base opaca Liquid Glass + Ambient Artwork Blur + Divisores
+    // =========================================================================
 
+    // 1. Base opaca Liquid Glass para evitar filtración de la página subyacente
+    Rectangle {
+        anchors.fill: parent
+        color: CachyPalette.isDark ? Qt.rgba(0.08, 0.08, 0.12, 0.96) : Qt.rgba(0.95, 0.95, 0.97, 0.96)
+        z: -3
+    }
+
+    // 2. Capa ambiental difuminada de la portada
     Item {
         id: bg
         anchors.fill: parent
         clip: true
-
-        Rectangle {
-            anchors.fill: parent
-            color: Qt.rgba(25, 25, 30, 1)
-        }
+        z: -2
+        opacity: CachyPalette.isDark ? 0.28 : 0.16
 
         Image {
-            scale: 1.8
             anchors.fill: parent
             asynchronous: true
-
             source: root.thumbnail
             fillMode: Image.PreserveAspectCrop
-
             sourceSize.width: 512
             sourceSize.height: 512
-        }
-
-        Rectangle {
-            visible: GraphicsInfo.api === GraphicsInfo.Software
-            anchors.fill: parent
-            color: "black"
-            opacity: 0.8
+            layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software
+            layer.effect: MultiEffect {
+                blur: 1.0
+                blurMax: 48
+                blurMultiplier: 3.5
+                blurEnabled: true
+                autoPaddingEnabled: false
+                saturation: 0.6
+                brightness: CachyPalette.isDark ? -0.1 : 0.0
+            }
         }
     }
-    MultiEffect {
-        source: bg
-        anchors.fill: bg
 
-        brightness: -0.25
-        saturation: 0.5
-
-        blurEnabled: true
-        autoPaddingEnabled: false
-        blur: 1.0
-        blurMax: 40
-        blurMultiplier: 3.0
-    }
-
+    // 3. Viñeta oscura sutil
     Rectangle {
         anchors.fill: parent
-        gradient: Gradient{
-            GradientStop { position: 0.0; color: "transparent" }
-            GradientStop { position: 1.1; color: "black"  }
+        z: -1
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.12) }
+            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.40) }
         }
     }
 
-    // content
+    // 4. Divisor superior de 1px
+    Rectangle {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 1
+        color: CachyPalette.hardDividerColor
+        z: 10
+    }
+
+    // 5. Reflejo especular superior de 1px
+    Rectangle {
+        anchors.top: parent.top
+        anchors.topMargin: 1
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 1
+        color: CachyPalette.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.50)
+        z: 9
+    }
+
+    PlaylistDialog {
+        id: playlistsDialog
+    }
+
+    // =========================================================================
+    // CONTENIDO — Estructura centrada simétrica según CachyOS.UI Golden Gate
+    // =========================================================================
     RowLayout {
         anchors.fill: parent
+        spacing: 0
 
         ColumnLayout {
             id: mainContent
             Layout.fillWidth: true
-            // hide arrow button
-            ToolButton {
-                id: closeButton
+            Layout.fillHeight: true
+            spacing: 0
 
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-                Layout.maximumHeight: parent.height
-                Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-                Layout.maximumWidth: parent.height
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 3
-                Layout.topMargin: Kirigami.Units.smallSpacing
-
-                icon.name: "arrow-down"
-                icon.color: "white"
-                Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                Kirigami.Theme.inherit: false
-                onClicked: root.requestClose()
-                text: i18n("Close Maximized Player")
-                display: ToolButton.IconOnly
-
-                ToolTip.text: text
-                ToolTip.delay: Kirigami.Units.toolTipDelay
-                ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-            }
-
-            SwipeView {
-                interactive: false
-                Layout.fillHeight: true
+            // 1. Barra superior: botón de colapsar centrado
+            Item {
+                id: topBar
                 Layout.fillWidth: true
-                clip:true
-                id: swipeView
-                property double specWidth: {
-                    let allowedWidth = root.width - Kirigami.Units.largeSpacing * 4;
-                    let allowedHeight = root.height - Kirigami.Units.largeSpacing * 16 - (closeButton.height + bottomPlayerControls.height);
-                    if (allowedWidth > allowedHeight) {
-                        return allowedHeight;
-                    } else {
-                        return allowedWidth;
-                    }
-                }
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-                Layout.preferredHeight: specWidth
+                Layout.preferredHeight: 44
+                Layout.topMargin: 4
 
-                // music art
-                Flickable {
-                    flickableDirection: Flickable.HorizontalFlick
-                    clip: true
-                    contentWidth: coverArt.width
-                    contentHeight: coverArt.height
-                    height: swipeView.height
-                    width: applicationWindow().width-sideDrawer.width
-                    onFlickEnded: {
-                        if (horizontalVelocity < 0) {
-                            UserPlaylistModel.next()
-                        } else {
-                            if (UserPlaylistModel.canSkipBack) {
-                                UserPlaylistModel.previous()
-                            }
-                        }
-                    }
-                    Item {
-                        height: swipeView.height
-                        width: applicationWindow().width-sideDrawer.width
-                        Kirigami.ShadowedRectangle {
-                           id: coverArt
-                           x: 4
-                           anchors.centerIn: parent
-                           width: swipeView.specWidth
-                           height: swipeView.specWidth
-
-                           visible: root.thumbnail.toString() !== ""
-
-                            color: "transparent"
-                            radius: 10
-                            shadow.size: 15
-                            shadow.xOffset: 5
-                            shadow.yOffset: 5
-                            shadow.color: Qt.rgba(0, 0, 0, 0.2)
-                            RoundedImage {
-                                source: root.thumbnail
-                                height: parent.height
-                                width: height
-                                radius: 10
-                            }
-                        }
-                    }
-                }
-
-                ColumnLayout {
-                    width: swipeView.width
-                    height: swipeView.height
-
-                    ScrollView {
-                        visible: root.syncedLyrics.count > 0
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        Layout.maximumWidth: 900
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.margins: 20
-                        clip: true
-
-                        ListView {
-                            id: syncedView
-
-                            NumberAnimation {
-                                id: smoothScroll
-                                target: syncedView
-                                property: "contentY"
-                                duration: 250
-                            }
-
-                            model: root.syncedLyrics
-
-                            delegate: Label {
-                                id: lineLabel
-
-                                required property string line
-                                required property int index
-                                required property int start
-                                required property int end
-
-                                property bool active: (start < audio.position / 1000 && end > audio.position / 1000) // Lyrics model timestamps are in seconds
-
-                                color: "white"
-                                text: line
-
-                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.5
-                                font.weight:  active ? Font.Bold : Font.Normal
-                                horizontalAlignment: Text.AlignHCenter
-
-                                width: parent ? parent.width : 0
-                                wrapMode: Text.Wrap
-
-                                onActiveChanged: {
-                                    if (active) {
-                                        var pos = syncedView.contentY;
-                                        syncedView.positionViewAtIndex(index - 3, ListView.Beginning);
-                                        var destPos;
-                                        destPos = syncedView.contentY;
-
-                                        smoothScroll.from = pos;
-                                        smoothScroll.to = destPos;
-                                        smoothScroll.running = true;
-                                    }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: {
-                                        root.audio.position = lineLabel.start * 1000;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    ScrollView {
-                        visible: root.syncedLyrics.count == 0
-                        Layout.maximumWidth: 900
-                        contentWidth: -1
-                        contentHeight: lyrics.implicitHeight
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        Layout.alignment: Qt.AlignHCenter
-                        clip: true
-
-                        //contentY: audio.position / audio.duration
-
-                        Label {
-                            id: lyrics
-                            padding: 20
-                            width: parent ? parent.width : 0
-                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.5
-                            text: UserPlaylistModel.lyrics
-                            color: "white"
-                            horizontalAlignment: Text.AlignHCenter
-                        }
-                    }
+                CachyToolbarButton {
+                    id: closeButton
+                    anchors.centerIn: parent
+                    iconName: "arrow-down"
+                    tooltipText: i18n("Close Maximized Player")
+                    onClicked: root.requestClose()
                 }
             }
 
+            // Espaciador elástico superior: centra los controles en la vertical
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
+
+            // 2. Grupo principal de reproducción (centrado horizontal y verticalmente)
             ColumnLayout {
-                id: bottomPlayerControls
-                Layout.topMargin: Kirigami.Units.largeSpacing
-                Layout.leftMargin: Kirigami.Units.gridUnit * 2
-                Layout.rightMargin: Kirigami.Units.gridUnit * 2
-                Layout.bottomMargin: Kirigami.Units.gridUnit * 0.5
+                id: playbackCenterGroup
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: Math.min(mainContent.width - 48, 540)
+                spacing: 0
 
-                // song name
-                Label {
+                // A. Carátula del álbum o Letras (SwipeView)
+                SwipeView {
+                    id: swipeView
+                    interactive: false
+                    clip: true
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: Math.min(mainContent.width - 48, 500)
+                    Layout.preferredHeight: currentIndex === 1
+                        ? Math.min(mainContent.height * 0.45, 340)
+                        : artworkCard.artworkSize
+
+                    // Página 0: Portada del álbum perfectamente centrada
+                    Item {
+                        id: coverArtPage
+                        width: swipeView.width
+                        height: swipeView.height
+
+                        Rectangle {
+                            id: artworkCard
+                            readonly property real artworkSize: Math.min(
+                                swipeView.width - 32,
+                                Math.max(160, (mainContent.height - 310) * 0.70),
+                                300
+                            )
+                            anchors.centerIn: parent
+                            width: artworkSize
+                            height: artworkSize
+                            radius: CachyTheme.radiusLarge
+                            color: Qt.rgba(1, 1, 1, 0.06)
+                            clip: true
+
+                            border.width: 1
+                            border.color: Qt.rgba(1, 1, 1, 0.14)
+
+                            Image {
+                                anchors.fill: parent
+                                source: root.thumbnail
+                                fillMode: Image.PreserveAspectCrop
+                                asynchronous: true
+                                visible: root.thumbnail.length > 0
+                            }
+
+                            CachyIcon {
+                                anchors.centerIn: parent
+                                source: "audio-x-generic"
+                                width: 64
+                                height: 64
+                                visible: root.thumbnail.length === 0
+                                color: Qt.rgba(1, 1, 1, 0.40)
+                            }
+                        }
+                    }
+
+                    // Página 1: Letras sincronizadas o estáticas
+                    ColumnLayout {
+                        width: swipeView.width
+                        height: swipeView.height
+
+                        ScrollView {
+                            visible: root.syncedLyrics.count > 0
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.alignment: Qt.AlignHCenter
+                            clip: true
+
+                            ListView {
+                                id: syncedView
+                                model: root.syncedLyrics
+
+                                NumberAnimation {
+                                    id: smoothScroll
+                                    target: syncedView
+                                    property: "contentY"
+                                    duration: 250
+                                }
+
+                                delegate: Controls.Label {
+                                    id: lineLabel
+                                    required property string line
+                                    required property int index
+                                    required property int start
+                                    required property int end
+
+                                    property bool active: (start < audio.position / 1000 && end > audio.position / 1000)
+
+                                    color: active ? "#FFFFFF" : Qt.rgba(1, 1, 1, 0.55)
+                                    text: line
+                                    font.pixelSize: active ? 17 : 14
+                                    font.weight: active ? Font.Bold : Font.Normal
+                                    horizontalAlignment: Text.AlignHCenter
+                                    width: parent ? parent.width : 0
+                                    wrapMode: Text.Wrap
+
+                                    onActiveChanged: {
+                                        if (active) {
+                                            var pos = syncedView.contentY;
+                                            syncedView.positionViewAtIndex(Math.max(0, index - 2), ListView.Beginning);
+                                            smoothScroll.from = pos;
+                                            smoothScroll.to = syncedView.contentY;
+                                            smoothScroll.running = true;
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: root.audio.position = lineLabel.start * 1000
+                                    }
+                                }
+                            }
+                        }
+
+                        ScrollView {
+                            visible: root.syncedLyrics.count === 0
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.alignment: Qt.AlignHCenter
+                            clip: true
+
+                            Controls.Label {
+                                id: lyrics
+                                padding: 16
+                                width: parent ? parent.width : 0
+                                font.pixelSize: 15
+                                text: UserPlaylistModel.lyrics
+                                color: "#FFFFFF"
+                                horizontalAlignment: Text.AlignHCenter
+                                wrapMode: Text.Wrap
+                            }
+                        }
+                    }
+                }
+
+                // Separador entre carátula y texto
+                Item {
+                    height: 18
+                    Layout.preferredHeight: 18
+                }
+
+                // B. Título de la pista (alto contraste, centrado)
+                Text {
                     id: mainLabel
-                    text: info.title ? info.title : i18n("No media playing")
-
+                    text: root.info.title ? root.info.title : i18n("No media playing")
                     Layout.fillWidth: true
-
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                     maximumLineCount: 1
-                    // Hardcoded because the footerbar blur always makes a dark-ish
-                    // background, so we don't want to use a color scheme color that
-                    // might also be dark
-                    color: "white"
-                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.5
+                    color: "#FFFFFF"
+                    font.pixelSize: 19
                     font.weight: Font.Bold
-                    font.bold: true
                 }
 
-                // song album
-                Kirigami.Heading {
-                    id: albumLabel
-                    text: root.info.album
-                    visible: root.info.album != ""
-                    color: Kirigami.Theme.disabledTextColor
-
-                    Layout.maximumWidth: 600
-                    Layout.alignment: Qt.AlignHCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            let index = UserPlaylistModel.index(UserPlaylistModel.currentIndex, 0)
-                            let albumId = UserPlaylistModel.data(index, UserPlaylistModel.AlbumId)
-                            pageStack.push("qrc:/qt/qml/org/kde/audiotube/contents/ui/AlbumPage.qml", {
-                                "browseId": albumId
-                            })
-                            root.requestClose()
-                        }
-                    }
-
-                    opacity: 0.9
-                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.3
-                    font.bold: true
-                    Layout.bottomMargin: Kirigami.Units.smallSpacing
+                // Separador de 4px
+                Item {
+                    height: 4
+                    Layout.preferredHeight: 4
                 }
 
-                // song artist
-                Kirigami.Heading {
-                    id: authorLabel
-                    text: root.info.artist ? info.artist : info.channel
-                    color: Kirigami.Theme.disabledTextColor
-
-                    Layout.fillWidth: true
-                    Layout.maximumWidth:600
-                    Layout.alignment: Qt.AlignHCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            let index = UserPlaylistModel.index(UserPlaylistModel.currentIndex, 0)
-                            let artistId = UserPlaylistModel.data(index, UserPlaylistModel.ArtistId)
-                            pageStack.push("qrc:/qt/qml/org/kde/audiotube/contents/ui/ArtistPage.qml", {
-                                "channelId": artistId
-                            })
-                            root.requestClose()
-                        }
-                    }
-
-                    // Hardcoded because the footerbar blur always makes a dark-ish
-                    // background, so we don't want to use a color scheme color that
-                    // might also be dark
-                    opacity: 0.9
-                    font.pointSize: Kirigami.Theme.defaultFont.pointSize
-                    font.bold: true
-                    Layout.bottomMargin: Kirigami.Units.gridUnit
-                }
-
-
+                // C. Artista y Álbum (centrado, interactivo)
                 RowLayout {
-                    Layout.topMargin: Kirigami.Units.gridUnit
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.maximumWidth: playbackCenterGroup.width
+                    spacing: 6
 
+                    Text {
+                        id: authorLabel
+                        text: root.info.artist ? root.info.artist : (root.info.channel ? root.info.channel : "")
+                        color: Qt.rgba(1, 1, 1, 0.75)
+                        font.pixelSize: 13
+                        font.weight: Font.Medium
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            enabled: root.info.artistId !== ""
+                            onClicked: {
+                                pageStack.push("qrc:/qt/qml/org/kde/audiotube/contents/ui/ArtistPage.qml", {
+                                    "channelId": root.info.artistId
+                                });
+                                root.requestClose();
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: "•"
+                        visible: authorLabel.text.length > 0 && albumLabel.text.length > 0
+                        color: Qt.rgba(1, 1, 1, 0.40)
+                        font.pixelSize: 12
+                    }
+
+                    Text {
+                        id: albumLabel
+                        text: root.info.album ? root.info.album : ""
+                        visible: text.length > 0
+                        color: Qt.rgba(1, 1, 1, 0.60)
+                        font.pixelSize: 13
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            enabled: root.info.albumId !== ""
+                            onClicked: {
+                                pageStack.push("qrc:/qt/qml/org/kde/audiotube/contents/ui/AlbumPage.qml", {
+                                    "browseId": root.info.albumId
+                                });
+                                root.requestClose();
+                            }
+                        }
+                    }
+                }
+
+                // Separador antes de los controles de reproducción
+                Item {
+                    height: 18
+                    Layout.preferredHeight: 18
+                }
+
+                // D. Botones de transporte (Skip Prev, Play/Pause 56px acento, Skip Next)
+                RowLayout {
                     id: controlButtonBox
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.fillHeight: true
-                    spacing: 2
+                    spacing: 24
 
-
-                    Button {
-                        id: skipBackwardButton
-                        focusPolicy: Qt.TabFocus
-                        implicitHeight: 40
-                        implicitWidth: 40
-
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
-
+                    // Skip Previous (38px circular pill)
+                    Rectangle {
+                        id: prevBtn
+                        width: 38
+                        height: 38
+                        radius: 19
+                        color: prevMouse.pressed
+                            ? Qt.rgba(1, 1, 1, 0.22)
+                            : (prevMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08))
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.12)
+                        scale: prevMouse.pressed ? 0.94 : (prevMouse.containsMouse ? 1.04 : 1.0)
+                        Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                        opacity: UserPlaylistModel.canSkipBack ? 1.0 : 0.4
                         enabled: UserPlaylistModel.canSkipBack
-                        onClicked: UserPlaylistModel.previous()
-                        contentItem: Item{
-                            Kirigami.Icon {
-                                anchors.centerIn:parent
-                                source:"media-skip-backward"
-                                color: "white"
-                                width: Kirigami.Units.gridUnit
-                                height: Kirigami.Units.gridUnit
 
-                            }
+                        CachyIcon {
+                            anchors.centerIn: parent
+                            source: "media-skip-backward"
+                            width: 18
+                            height: 18
+                            color: "#FFFFFF"
                         }
-                        background: Kirigami.ShadowedRectangle{
-                            border.color: Kirigami.Theme.hoverColor
-                            border.width: skipBackwardButton.activeFocus? 1 :0
-                            corners.topLeftRadius: 7
-                            corners.bottomLeftRadius: 7
 
-
-                            color: if (parent.down){
-                                    Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.3)
-                                }else if(parent.hovered){
-                                    Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
-                                }else{
-                                    Qt.rgba(1, 1, 1, 0.2)
-                                }
+                        MouseArea {
+                            id: prevMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: UserPlaylistModel.previous()
                         }
                     }
 
-                    Button {
-                        id: playPauseButton
-                        focusPolicy: Qt.TabFocus
-                        implicitHeight: 40
-                        implicitWidth: 60
-                        enabled: info.title
-                        onClicked: audio.playbackState === MediaPlayer.PlayingState ? audio.pause() : audio.play()
-                        contentItem: Item{
-                            Kirigami.Icon {
-                                anchors.centerIn:parent
-                                source: audio.playbackState === MediaPlayer.PlayingState ? "media-playback-pause" : "media-playback-start"
-                                color: "white"
-                                width: Kirigami.Units.gridUnit
-                                height: Kirigami.Units.gridUnit
-                            }
+                    // Play/Pause Primary Accent Button (56px círculo)
+                    Rectangle {
+                        id: playPauseBtn
+                        width: 56
+                        height: 56
+                        radius: 28
+                        color: CachyTheme.accentColor
+                        scale: playPauseMouse.pressed ? 0.93 : (playPauseMouse.containsMouse ? 1.05 : 1.0)
+                        Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutBack } }
+
+                        // Reflejo especular superior
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width - 6
+                            height: parent.height / 2
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: 1
+                            border.color: Qt.rgba(1, 1, 1, 0.35)
                         }
-                        background: Kirigami.ShadowedRectangle{
-                            border.color: Kirigami.Theme.hoverColor
-                            border.width: playPauseButton.activeFocus? 1 :0
-                            color: if (parent.down){
-                                    Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.3)
-                                }else if(parent.hovered){
-                                    Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
-                                }else{
-                                    Qt.rgba(1, 1, 1, 0.2)
-                                }
+
+                        CachyIcon {
+                            anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: (root.audio.playbackState === MediaPlayer.PlayingState) ? 0 : 1.5
+                            source: (root.audio.playbackState === MediaPlayer.PlayingState)
+                                ? "media-playback-pause"
+                                : "media-playback-start"
+                            width: 24
+                            height: 24
+                            color: "#FFFFFF"
                         }
-                    }
 
-                    Button {
-                        id: skipForwardButton
-                        focusPolicy: Qt.TabFocus
-                        implicitHeight: 40
-                        implicitWidth: 40
-                        Layout.rightMargin:isWidescreen?0:10
-
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
-
-                        enabled: UserPlaylistModel.canSkip
-                        onClicked: UserPlaylistModel.next()
-                        contentItem: Item{
-                            Kirigami.Icon {
-                                anchors.centerIn:parent
-                                source:"media-skip-forward"
-                                color: "white"
-                                width: Kirigami.Units.gridUnit
-                                height: Kirigami.Units.gridUnit
-
-                            }
-                        }
-                        background: Kirigami.ShadowedRectangle{
-                            border.color: Kirigami.Theme.hoverColor
-                            border.width: skipForwardButton.activeFocus? 1 :0
-                            corners.topRightRadius: 7
-                            corners.bottomRightRadius: 7
-                            color: {
-                                if (parent.down) {
-                                    Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.3)
-                                } else if (parent.hovered) {
-                                    Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
+                        MouseArea {
+                            id: playPauseMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (root.audio.playbackState === MediaPlayer.PlayingState) {
+                                    root.audio.pause();
                                 } else {
-                                    Qt.rgba(1, 1, 1, 0.2)
+                                    root.audio.play();
                                 }
                             }
+                        }
+                    }
+
+                    // Skip Next (38px circular pill)
+                    Rectangle {
+                        id: nextBtn
+                        width: 38
+                        height: 38
+                        radius: 19
+                        color: nextMouse.pressed
+                            ? Qt.rgba(1, 1, 1, 0.22)
+                            : (nextMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.08))
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.12)
+                        scale: nextMouse.pressed ? 0.94 : (nextMouse.containsMouse ? 1.04 : 1.0)
+                        Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                        opacity: UserPlaylistModel.canSkip ? 1.0 : 0.4
+                        enabled: UserPlaylistModel.canSkip
+
+                        CachyIcon {
+                            anchors.centerIn: parent
+                            source: "media-skip-forward"
+                            width: 18
+                            height: 18
+                            color: "#FFFFFF"
+                        }
+
+                        MouseArea {
+                            id: nextMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: UserPlaylistModel.next()
                         }
                     }
                 }
 
-                // slider row
-                RowLayout {
-                    Layout.topMargin: Kirigami.Units.gridUnit
-                    spacing: Kirigami.Units.smallSpacing
+                // Separador antes de la línea de tiempo
+                Item {
+                    height: 16
+                    Layout.preferredHeight: 16
+                }
 
-                    Label {
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "white"
-                        visible: root.info.title
-                        text: PlayerUtils.formatTimestamp(audio.position)
+                // E. Barra de progreso y marcas de tiempo
+                RowLayout {
+                    id: timelineRow
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    Text {
+                        id: elapsedText
+                        text: PlayerUtils.formatTimestamp(root.audio.position)
+                        font.pixelSize: 12
+                        font.family: "monospace"
+                        color: Qt.rgba(1, 1, 1, 0.75)
+                        Layout.minimumWidth: 42
+                        horizontalAlignment: Text.AlignRight
                     }
 
-                    Slider {
-                        Layout.alignment: Qt.AlignVCenter
+                    CachySlider {
+                        id: timelineSlider
                         Layout.fillWidth: true
+                        accentColor: CachyTheme.accentColor
                         from: 0
-                        to: root.audio.duration
+                        to: Math.max(1, root.audio.duration)
                         value: root.audio.position
                         enabled: root.audio.seekable
                         onMoved: {
-                            console.log("Value:", value);
-                            audio.position = Math.floor(value);
-                        }
-
-                        Behavior on value {
-                            NumberAnimation {
-                                duration: 1000
-                            }
+                            root.audio.position = Math.floor(value);
                         }
                     }
 
-                    Label {
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "white"
-                        visible: root.info.title
-                        text: PlayerUtils.formatTimestamp(audio.duration)
+                    Text {
+                        id: durationText
+                        text: PlayerUtils.formatTimestamp(root.audio.duration)
+                        font.pixelSize: 12
+                        font.family: "monospace"
+                        color: Qt.rgba(1, 1, 1, 0.75)
+                        Layout.minimumWidth: 42
+                        horizontalAlignment: Text.AlignLeft
                     }
                 }
 
+                // Separador antes de las acciones inferiores
+                Item {
+                    height: 16
+                    Layout.preferredHeight: 16
+                }
+
+                // F. Barra de acciones de utilidad (Favoritos, Volumen, Letras, Compartir, Playlist, Cola)
                 RowLayout {
-                    Layout.topMargin: Kirigami.Units.largeSpacing
-                    Layout.fillWidth: true
-                    // ensure white icons
-                    Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                    Kirigami.Theme.inherit: false
-                    Item {
-                        width: queueButton.width
-                        visible: wideScreen
-                    }
+                    id: actionToolbar
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: 14
 
-                    Item { Layout.fillWidth: true}
-
-                    ToolButton {
+                    // Favorito
+                    CachyToolbarButton {
                         id: favouriteButton
-                        readonly property QtObject favouriteWatcher: Library.favouriteWatcher(info.videoId)
-                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-                        Layout.maximumWidth: height
-                        Layout.preferredWidth: height
+                        readonly property QtObject favouriteWatcher: Library.favouriteWatcher(root.info.videoId)
+                        iconName: favouriteWatcher && favouriteWatcher.isFavourite ? "starred-symbolic" : "non-starred-symbolic"
+                        tooltipText: favouriteWatcher && favouriteWatcher.isFavourite ? i18n("Remove from Favorites") : i18n("Add to Favorites")
                         onClicked: {
                             if (favouriteWatcher) {
                                 if (favouriteWatcher.isFavourite) {
-                                    Library.removeFavourite(info.videoId)
-                                    // This would insert slightly ugly data into the database, but let's hope the song is already saved
+                                    Library.removeFavourite(root.info.videoId);
                                 } else {
-                                    let index = UserPlaylistModel.index(UserPlaylistModel.currentIndex, 0)
-                                    let videoId = UserPlaylistModel.data(index, UserPlaylistModel.VideoId)
-                                    let title = UserPlaylistModel.data(index, UserPlaylistModel.Title)
-                                    let artist = UserPlaylistModel.data(index, UserPlaylistModel.Artists)
-                                    let artistId = UserPlaylistModel.data(index, UserPlaylistModel.ArtistId)
-                                    let album = UserPlaylistModel.data(index, UserPlaylistModel.Album)
-                                    let albumId = UserPlaylistModel.data(index, UserPlaylistModel.AlbumId)
-                                    Library.addFavourite(videoId, title, artist, artistId, album, albumId)
+                                    let index = UserPlaylistModel.index(UserPlaylistModel.currentIndex, 0);
+                                    let videoId = UserPlaylistModel.data(index, UserPlaylistModel.VideoId);
+                                    let title = UserPlaylistModel.data(index, UserPlaylistModel.Title);
+                                    let artist = UserPlaylistModel.data(index, UserPlaylistModel.Artists);
+                                    let artistId = UserPlaylistModel.data(index, UserPlaylistModel.ArtistId);
+                                    let album = UserPlaylistModel.data(index, UserPlaylistModel.Album);
+                                    let albumId = UserPlaylistModel.data(index, UserPlaylistModel.AlbumId);
+                                    Library.addFavourite(videoId, title, artist, artistId, album, albumId);
                                 }
                             }
                         }
-                        text: favouriteWatcher ? (favouriteWatcher.isFavourite ? i18n("Remove from Favorites") : i18n("Add to Favorites")) : i18n("Add to Favorites")
-                        icon.name: favouriteWatcher ? (favouriteWatcher.isFavourite ? "starred-symbolic" : "non-starred-symbolic") : "non-starred-symbolic"
-                        enabled: favouriteWatcher
-                        icon.color: "white"
-                        display: AbstractButton.IconOnly
-
-                        ToolTip.text: text
-                        ToolTip.delay: Kirigami.Units.toolTipDelay
-                        ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
                     }
 
-                    ToolButton {
-                        id: volumeButtonSmallScreen
-                        Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-                        Layout.maximumWidth: height
-                        Layout.preferredWidth: height
-                        visible: !isWidescreen && !Kirigami.Settings.isMobile
-                        enabled: !isWidescreen
+                    // Control de volumen integrado
+                    RowLayout {
+                        spacing: 6
+                        visible: root.isWidescreen
 
-                        icon.name: muteButton.icon.name
-
-                        text: i18n("Open Volume Drawer")
-                        icon.color: "white"
-                        display: AbstractButton.IconOnly
-                        ToolTip.text: text
-                        ToolTip.delay: Kirigami.Units.toolTipDelay
-                        ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-
-                        onClicked:{
-                            if(!volumeDrawer.opened){
-                                volumeDrawer.open()
+                        CachyToolbarButton {
+                            id: muteButton
+                            iconName: {
+                                if (!root.audio || !root.audio.audioOutput) return "audio-volume-medium";
+                                if (root.audio.audioOutput.muted || root.audio.audioOutput.volume === 0) return "audio-volume-muted";
+                                if (root.audio.audioOutput.volume < 0.4) return "audio-volume-low";
+                                if (root.audio.audioOutput.volume < 0.7) return "audio-volume-medium";
+                                return "audio-volume-high";
                             }
-                            else{
-                                volumeDrawer.close()
+                            tooltipText: (root.audio && root.audio.audioOutput && root.audio.audioOutput.muted) ? i18n("Unmute") : i18n("Mute")
+                            onClicked: {
+                                if (root.audio && root.audio.audioOutput) {
+                                    root.audio.audioOutput.muted = !root.audio.audioOutput.muted;
+                                }
                             }
                         }
-                        Components.BottomDrawer {
-                            id: volumeDrawer
 
-                            parent: applicationWindow().overlay
-
-                            drawerContentItem: RowLayout {
-                                ToolButton {
-                                    Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-                                    Layout.maximumWidth: height
-                                    Layout.preferredWidth: height
-
-                                    icon.name: muteButton.icon.name
-                                    checkable: true
-                                    checked: muteButton.checked
-                                    text: muteButton.text
-                                    display: muteButton.display
-
-                                    ToolTip.text: text
-                                    ToolTip.delay: Kirigami.Units.toolTipDelay
-                                    ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-
-                                    onClicked: {
-                                        if (root.audio.muted) {
-                                            muteButton.unmuteAudio()
-                                        } else {
-                                            muteButton.muteAudio()
-                                        }
+                        CachySlider {
+                            id: volumeSlider
+                            Layout.preferredWidth: 84
+                            accentColor: CachyTheme.accentColor
+                            from: 0.0
+                            to: 1.0
+                            value: root.audio && root.audio.audioOutput ? root.audio.audioOutput.volume : 1.0
+                            onMoved: {
+                                if (root.audio && root.audio.audioOutput) {
+                                    root.audio.audioOutput.volume = value;
+                                    if (root.audio.audioOutput.muted && value > 0) {
+                                        root.audio.audioOutput.muted = false;
                                     }
                                 }
-
-                                Slider {
-                                    id: slider
-                                    value: volumeSlider.value
-                                    opacity: volumeSlider.opacity
-                                    wheelEnabled: true
-
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-
-                                    onMoved: {
-                                        volumeSlider.value = value
-                                        volumeSlider.valueChanged()
-                                    }
-                                }
-
-                                Label {
-                                    Layout.preferredHeight: slider.height
-                                    Layout.preferredWidth: Kirigami.Units.gridUnit * 2.5
-
-                                    text: volumeLabel.text
-                                }
                             }
                         }
                     }
 
-                    ToolButton {
-                        id: muteButton
-
-                        function muteAudio() {
-                            root.audio.audioOutput.muted = true
-                            volumeSlider.opacity = 0.5
-                            checked = true
-                        }
-                        function unmuteAudio() {
-                            root.audio.audioOutput.muted = false
-                            volumeSlider.opacity = 1
-                            checked = false
-                        }
-
-                        Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-                        Layout.maximumWidth: height
-                        Layout.preferredWidth: height
-
-                        onClicked: {
-                            if(root.audio.audioOutput.muted) {
-                                unmuteAudio()
-                            }
-                            else {
-                                muteAudio()
-                            }
-                        }
-
-                        icon.name: root.audio.audioOutput.muted ? "audio-volume-muted" : (volumeSlider.value < .33 ? "audio-volume-low" : (volumeSlider.value < .66 ? "audio-volume-medium" : "audio-volume-high"))
-                        icon.color: "white"
-
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
-
-                        checkable: true
-                        visible: isWidescreen
-                        enabled: isWidescreen
-                        text: root.audio.audioOutput.muted ? i18n("Unmute Audio") : i18n("Mute Audio")
-                        display: AbstractButton.IconOnly
-
-                        ToolTip.text: text
-                        ToolTip.delay: Kirigami.Units.toolTipDelay
-                        ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-                    }
-
-                    Slider {
-                        id: volumeSlider
-                        enabled: isWidescreen
-                        visible: isWidescreen
-
-                        property real volume: PlayerUtils.convertVolume(value)
-
-                        Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-                        Layout.preferredWidth: 2*Layout.preferredHeight
-
-                        value: 1.0
-                        from: 0.0
-                        to: 1.0
-                        wheelEnabled: true
-
-                        onMoved: {
-                            root.audio.audioOutput.volume = volumeSlider.volume
-                            if (volumeSlider.value === 0) {
-                                muteButton.muteAudio()
-                            } else {
-                                muteButton.unmuteAudio()
-                            }
-                        }
-                    }
-
-                    Label {
-                        id: volumeLabel
-
-                        enabled: isWidescreen
-                        visible: isWidescreen
-                        text: i18nc("%1 is the audio volume in percent", "%1%", Math.round(volumeSlider.value*100))
-
-                        Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 2.5
-                    }
-
-                    ToolButton {
-                        property bool lyricsShown: false
+                    // Conmutador de Letras
+                    CachyToolbarButton {
                         id: lyricsButton
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-                        Layout.maximumWidth: height
-                        Layout.preferredWidth: height
-                        checked: lyricsShown
+                        iconName: "view-media-lyrics"
+                        tooltipText: swipeView.currentIndex === 1 ? i18n("Hide Lyrics") : i18n("Show Lyrics")
+                        checkable: true
+                        checked: swipeView.currentIndex === 1
+                        enabled: UserPlaylistModel.lyrics.length > 0 || root.syncedLyrics.count > 0
                         onClicked: {
-                                if (!lyricsShown)
-                                    swipeView.setCurrentIndex(1)
-                                else{
-                                    swipeView.setCurrentIndex(0)
-                                }
-                                lyricsShown = !lyricsShown
+                            if (swipeView.currentIndex === 1) {
+                                swipeView.setCurrentIndex(0);
+                            } else {
+                                swipeView.setCurrentIndex(1);
+                            }
                         }
+
                         Connections {
                             target: UserPlaylistModel
                             function onNoLyrics() {
-                                if(lyricsButton.lyricsShown && root.syncedLyrics.count == 0) {
-                                    lyricsButton.clicked()
+                                if (swipeView.currentIndex === 1 && root.syncedLyrics.count === 0) {
+                                    swipeView.setCurrentIndex(0);
                                 }
                             }
                         }
-                        enabled: UserPlaylistModel.lyrics || root.syncedLyrics.count > 0
-                        text: lyricsShown ? i18n("Hide Lyrics") : i18n("Show Lyrics")
-                        icon.name: "view-media-lyrics"
-                        icon.color: "white"
-                        display: AbstractButton.IconOnly
-
-                        ToolTip.text: text
-                        ToolTip.delay: Kirigami.Units.toolTipDelay
-                        ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
                     }
-                    ToolButton {
 
+                    // Compartir Canción
+                    CachyToolbarButton {
                         id: shareButton
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-                        Layout.maximumWidth: height
-                        Layout.preferredWidth: height
+                        iconName: "emblem-shared-symbolic"
+                        tooltipText: i18n("Share Song")
+                        enabled: root.info.title ? root.info.title.length > 0 : false
                         onClicked: openShareMenu(root.info.title, UserPlaylistModel.webUrl)
-
-                        text: i18n("Share Song")
-                        icon.name: "emblem-shared-symbolic"
-                        icon.color: "white"
-                        display: AbstractButton.IconOnly
-
-                        ToolTip.text: text
-                        ToolTip.delay: Kirigami.Units.toolTipDelay
-                        ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-
-                        enabled: root.info.title
-
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
                     }
 
-                    PlaylistDialog {
-                        id: playlistsDialog
-                    }
-                    ToolButton {
+                    // Añadir a lista de reproducción local
+                    CachyToolbarButton {
                         id: addToPlaylistButton
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-                        Layout.maximumWidth: height
-                        Layout.preferredWidth: height
-                        enabled: root.info.videoId
-
+                        iconName: "media-playlist-append"
+                        tooltipText: i18n("Add to a local playlist")
+                        enabled: root.info.videoId ? root.info.videoId.length > 0 : false
                         onClicked: {
-                            let index = UserPlaylistModel.index(UserPlaylistModel.currentIndex, 0)
-                            let videoId = UserPlaylistModel.data(index, UserPlaylistModel.VideoId)
-                            let title = UserPlaylistModel.data(index, UserPlaylistModel.Title)
-                            let artist = UserPlaylistModel.data(index, UserPlaylistModel.Artists)
-                            let artistId = UserPlaylistModel.data(index, UserPlaylistModel.ArtistId)
-                            let album = UserPlaylistModel.data(index, UserPlaylistModel.Album)
-                            let albumId = UserPlaylistModel.data(index, UserPlaylistModel.AlbumId)
-                            playlistsDialog.videoId = videoId
-                            playlistsDialog.songTitle = title
-                            playlistsDialog.artists = artist
-                            playlistsDialog.artistId = artistId
-                            playlistsDialog.album = album
-                            playlistsDialog.albumId = albumId
-
-                            playlistsDialog.open()
+                            let index = UserPlaylistModel.index(UserPlaylistModel.currentIndex, 0);
+                            playlistsDialog.videoId = UserPlaylistModel.data(index, UserPlaylistModel.VideoId);
+                            playlistsDialog.songTitle = UserPlaylistModel.data(index, UserPlaylistModel.Title);
+                            playlistsDialog.artists = UserPlaylistModel.data(index, UserPlaylistModel.Artists);
+                            playlistsDialog.artistId = UserPlaylistModel.data(index, UserPlaylistModel.ArtistId);
+                            playlistsDialog.album = UserPlaylistModel.data(index, UserPlaylistModel.Album);
+                            playlistsDialog.albumId = UserPlaylistModel.data(index, UserPlaylistModel.AlbumId);
+                            playlistsDialog.open();
                         }
-
-                        icon.name: "media-playlist-append"
-                        icon.color: "white"
-                        text: i18n("Add to a local playlist")
-                        display: AbstractButton.IconOnly
-
-                        ToolTip.text: text
-                        ToolTip.delay: Kirigami.Units.toolTipDelay
-                        ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
-                    }
-                    Item {
-                        Layout.fillWidth: true
-                        visible: wideScreen
                     }
 
-                    ToolButton {
+                    // Conmutador de Cola de reproducción
+                    CachyToolbarButton {
                         id: queueButton
-                        Layout.alignment: Qt.AlignRight
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-                        Layout.maximumWidth: height
-                        Layout.preferredWidth: height
-                        checked: !sideDrawer.collapsed && wideScreen
-                        enabled: playListView.count != 0 || !sideDrawer.collapsed
-
+                        iconName: "amarok_playlist"
+                        tooltipText: sideDrawer.visible ? i18n("Hide Queue") : i18n("Show Queue")
+                        checkable: true
+                        checked: sideDrawer.visible && !sideDrawer.collapsed
                         onClicked: {
-                            if (wideScreen) {
-                                if (!sideDrawer.collapsed)
-                                    collapse.running = true
-                                else{
-                                    sideDrawer.visible=true
-                                    show.running = true
+                            if (root.wideScreen) {
+                                if (!sideDrawer.collapsed && sideDrawer.visible) {
+                                    collapse.running = true;
+                                    sideDrawer.collapsed = true;
+                                } else {
+                                    sideDrawer.visible = true;
+                                    show.running = true;
+                                    sideDrawer.collapsed = false;
                                 }
-                                sideDrawer.collapsed = !sideDrawer.collapsed
-                            }else{queueDrawer.open()}
-                            checked = !sideDrawer.collapsed && wideScreen
+                            } else {
+                                queueDrawer.open();
+                            }
                         }
-
-                        text: checked ? i18n("Hide Queue") : i18n("Show Queue")
-                        display: AbstractButton.IconOnly
-
-                        ToolTip.text: text
-                        ToolTip.delay: Kirigami.Units.toolTipDelay
-                        ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-
-                        icon.name: "amarok_playlist"
-                        icon.color: "white"
-
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
                     }
-
-                    Item {
-                        Layout.fillWidth: true
-                        visible: !wideScreen
-                    }
-
                 }
+            }
+
+            // Espaciador elástico inferior: garantiza centrado vertical perfecto
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
             }
         }
 
@@ -906,17 +725,20 @@ Item {
                 from: 0; to: Math.min(sideDrawer.Layout.preferredWidth, root.width - mainContent.Layout.minimumWidth)
                 //onFinished: { sideDrawer.visible=false}
             }
-            Kirigami.Separator{
-                color: "white"
-                opacity: 0.3
-                height: parent.height
+            // Divisor estructural izquierdo de 1px
+            Rectangle {
                 anchors.left: parent.left
-
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 1
+                color: CachyPalette.hardDividerColor
+                z: 10
             }
-            Rectangle{
+
+            // Fondo Liquid Glass de la barra lateral de cola
+            Rectangle {
                 anchors.fill: parent
-                color: "white"
-                opacity: 0.2
+                color: CachyPalette.isDark ? Qt.rgba(0.09, 0.09, 0.13, 0.94) : Qt.rgba(0.96, 0.96, 0.98, 0.94)
             }
 
             MouseArea {
@@ -1170,7 +992,7 @@ Item {
         Components.BottomDrawer {
             id: queueDrawer
 
-            parent: applicationWindow().overlay
+            parent: applicationWindow().overlayItem ? applicationWindow().overlayItem : applicationWindow()
 
             onClosed:{sideDrawer.collapsed=true}
             height: applicationWindow().height - 50

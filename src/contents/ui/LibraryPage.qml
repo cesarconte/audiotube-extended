@@ -82,7 +82,7 @@ Kirigami.ScrollablePage {
                 Components.BottomDrawer {
                     id: favDrawer
 
-                    parent: applicationWindow().overlay
+                    parent: applicationWindow().overlayItem
 
                     drawerContentItem: ColumnLayout {
                         KirigamiDelegates.SubtitleDelegate {
@@ -279,7 +279,7 @@ Kirigami.ScrollablePage {
                 Components.BottomDrawer{
                     id: recDrawer
 
-                    parent: applicationWindow().overlay
+                    parent: applicationWindow().overlayItem
 
                     drawerContentItem: ColumnLayout {
                         KirigamiDelegates.SubtitleDelegate{
@@ -468,7 +468,7 @@ Kirigami.ScrollablePage {
         Components.BottomDrawer{
             id: playlistDrawer
 
-            parent: applicationWindow().overlay
+            parent: applicationWindow().overlayItem
 
             property var modelData
             drawerContentItem: ColumnLayout {

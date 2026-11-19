@@ -141,7 +141,7 @@ Item {
                 Components.BottomDrawer {
                     id: overflowDrawer
 
-                    parent: applicationWindow().overlay
+                    parent: applicationWindow().overlayItem
 
                     drawerContentItem: ColumnLayout {
                         Repeater {
