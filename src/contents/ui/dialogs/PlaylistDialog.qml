@@ -60,7 +60,6 @@ Kirigami.Dialog {
 
             contentItem: RowLayout {
                 Layout.fillHeight: true
-                LocalPlaylistModel{id:localPlaylistModel}
                 ThumbnailSource {
                     id: thumbnailSource1
                     videoId: thumbnailIds[0] ?? ""

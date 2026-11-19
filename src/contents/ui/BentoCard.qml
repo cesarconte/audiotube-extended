@@ -143,11 +143,9 @@ T.ItemDelegate {
             anchors.fill: parent
             source: root.thumbnailUrl
             fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            sourceSize: Qt.size(240 * Screen.devicePixelRatio, 240 * Screen.devicePixelRatio)
             visible: root.thumbnailUrl !== "" && status === Image.Ready
-            
-            onSourceChanged: {
-                if (root.thumbnailUrl) console.log("BentoCard: Image source changed to:", root.thumbnailUrl)
-            }
             
             layer.enabled: true
             layer.effect: OpacityMask {

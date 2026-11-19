@@ -153,7 +153,10 @@ Item {
             ColumnLayout {
                 id: playbackCenterGroup
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: Math.min(mainContent.width - 48, 540)
+                Layout.fillWidth: true
+                Layout.maximumWidth: 540
+                Layout.leftMargin: 24
+                Layout.rightMargin: 24
                 spacing: 0
 
                 // A. Carátula del álbum o Letras (SwipeView)
@@ -162,9 +165,10 @@ Item {
                     interactive: false
                     clip: true
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth: Math.min(mainContent.width - 48, 500)
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: 500
                     Layout.preferredHeight: currentIndex === 1
-                        ? Math.min(mainContent.height * 0.45, 340)
+                        ? Math.min(root.height * 0.45, 340)
                         : artworkCard.artworkSize
 
                     // Página 0: Portada del álbum perfectamente centrada
@@ -177,7 +181,7 @@ Item {
                             id: artworkCard
                             readonly property real artworkSize: Math.min(
                                 swipeView.width - 32,
-                                Math.max(160, (mainContent.height - 310) * 0.70),
+                                Math.max(160, (root.height - 310) * 0.70),
                                 300
                             )
                             anchors.centerIn: parent

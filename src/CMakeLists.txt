@@ -35,7 +35,6 @@ add_executable(audiotube
     localplaylistmodel.cpp
     localplaylistsmodel.cpp
     playlistimporter.cpp
-    blur.cpp
     clipboard.cpp
     lyricsmodel.cpp
     foreigntypes.h

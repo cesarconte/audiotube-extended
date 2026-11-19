@@ -41,9 +41,9 @@ void VideoInfoExtractor::updateAudioFormats()
         return;
     }
 
-    qWarning() << "available formats:";
+    qDebug() << "available formats:";
     for (const auto &f : m_videoInfo.formats) {
-        qWarning() << "  " << "acodec" << f.acodec << "format_id" << f.format_id << "quality" << f.quality << "vcodec" << f.vcodec;
+        qDebug() << "  " << "acodec" << f.acodec << "format_id" << f.format_id << "quality" << f.quality << "vcodec" << f.vcodec;
     }
 
     // Filter audio only formats
@@ -93,9 +93,9 @@ void VideoInfoExtractor::updateAudioFormats()
         });
     }
 
-    qWarning() << "Prioritized audio formats:";
+    qDebug() << "Prioritized audio formats:";
     for (size_t i = 0; i < m_audioFormats.size(); ++i) {
-        qWarning() << " [" << i << "] format_id:" << QString::fromStdString(m_audioFormats[i].format_id)
+        qDebug() << " [" << i << "] format_id:" << QString::fromStdString(m_audioFormats[i].format_id)
                    << "acodec:" << m_audioFormats[i].acodec
                    << "score:" << score(m_audioFormats[i]);
     }

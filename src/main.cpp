@@ -27,14 +27,22 @@ using namespace Qt::StringLiterals;
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
+    // Optimización de aceleración por hardware en CachyOS (Intel Raptor Lake UHD 770 / VA-API)
+    if (qEnvironmentVariableIsEmpty("LIBVA_DRIVER_NAME")) {
+        qputenv("LIBVA_DRIVER_NAME", "iHD");
+    }
+    if (qEnvironmentVariableIsEmpty("VDPAU_DRIVER")) {
+        qputenv("VDPAU_DRIVER", "va_gl");
+    }
+
     QApplication app(argc, argv);
     KirigamiAppDefaults::apply(&app);
 
     // Allow QtMultimedia to use its default backend (FFmpeg on modern Linux)
     // which reliably streams DASH audio streams from YouTube without HTTP 403.
 
-    QCoreApplication::setOrganizationName(QStringLiteral("KDE"));
-    QCoreApplication::setOrganizationDomain(QStringLiteral("kde.org"));
+    QCoreApplication::setOrganizationName(QStringLiteral("CachyOS"));
+    QCoreApplication::setOrganizationDomain(QStringLiteral("cachyos.org"));
     QCoreApplication::setApplicationName(QStringLiteral("audiotube"));
 
     KLocalizedString::setApplicationDomain("audiotube");

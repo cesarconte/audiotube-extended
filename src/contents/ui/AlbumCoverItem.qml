@@ -16,7 +16,6 @@ Controls.ToolButton {
     property alias subtitle: favSubtitle.text
     property bool showIcon: true
 
-    signal clicked
     signal optionsClicked
 
     implicitWidth: mainLayout.implicitWidth

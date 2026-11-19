@@ -204,8 +204,6 @@ Kirigami.ScrollablePage {
                     }
                 }
 
-                LocalPlaylistsModel{id:localPlaylistModel}
-
                 ThumbnailSource {
                     id: thumbnailSource1
                     videoId: thumbnailIds[0]

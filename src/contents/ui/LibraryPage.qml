@@ -542,8 +542,6 @@ Kirigami.ScrollablePage {
                     subtitle: playlistDelegate.description
                     showIcon: false
 
-                    LocalPlaylistsModel{id:localPlaylistModel}
-
                     ThumbnailSource {
                         id: thumbnailSource1
                         videoId: thumbnailIds[0] ?? ""
