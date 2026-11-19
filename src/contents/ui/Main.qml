@@ -395,7 +395,16 @@ CachyWindow {
 
     Component.onCompleted: {
         let page = null;
-        switch (StateConfig.lastOpenedPage) {
+        let startupTarget = StateConfig.startupPage;
+        if (!startupTarget || startupTarget === "last") {
+            startupTarget = StateConfig.lastOpenedPage;
+        } else if (startupTarget === "home") {
+            startupTarget = "homePage";
+        } else if (startupTarget === "explore") {
+            startupTarget = "explorePage";
+        }
+
+        switch (startupTarget) {
         case 'libraryPage':
             page = pool.loadPage(Qt.resolvedUrl('./LibraryPage.qml'));
             break;

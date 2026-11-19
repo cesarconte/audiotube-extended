@@ -129,6 +129,16 @@ Item {
         }
 
         CachySidebarItem {
+            id: settingsButton
+            text: i18n("Ajustes")
+            iconName: "settings-configure-symbolic"
+            selected: false
+            onClicked: {
+                pageStack.pushDialogLayer(Qt.resolvedUrl("SettingsPage.qml"));
+            }
+        }
+
+        CachySidebarItem {
             id: aboutButton
             text: i18n("About")
             iconName: "help-about-symbolic"

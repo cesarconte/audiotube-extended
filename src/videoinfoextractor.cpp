@@ -7,6 +7,7 @@
 #include <QDebug>
 
 #include "asyncytmusic.h"
+#include "stateconfig.h"
 
 VideoInfoExtractor::VideoInfoExtractor(QObject *parent)
     : QObject(parent)
@@ -52,20 +53,25 @@ void VideoInfoExtractor::updateAudioFormats()
             return (!format.acodec.has_value() || format.acodec != "none") && format.vcodec == "none";
         });
 
-    auto score = [](const video_info::Format &f) -> int {
-        // High quality AAC HLS audio (format 234, ~134 kbps - unblocked by YouTube CDN bot protection)
-        if (f.format_id == "234") return 1000;
-        // Standard AAC HLS audio (format 233, ~48 kbps - unblocked)
-        if (f.format_id == "233") return 900;
-        // Direct M4A audio (format 139, ~48 kbps AAC - unblocked)
-        if (f.format_id == "139") return 800;
-        // Any other HLS manifest audio stream
+    const bool preferStandard = (StateConfig::self()->audioQuality() == QLatin1String("standard"));
+    auto score = [preferStandard](const video_info::Format &f) -> int {
+        if (preferStandard) {
+            // Priorizar menor consumo de ancho de banda y datos (AAC/M4A ~48 kbps)
+            if (f.format_id == "233") return 1000;
+            if (f.format_id == "139") return 950;
+            if (f.format_id == "249") return 900;
+            if (f.format_id == "234") return 800;
+            if (f.format_id == "140") return 700;
+        } else {
+            // Alta calidad predeterminada (AAC HLS 134 kbps)
+            if (f.format_id == "234") return 1000;
+            if (f.format_id == "233") return 900;
+            if (f.format_id == "139") return 800;
+            if (f.format_id == "140") return 600;
+        }
         if (f.url.find("manifest.googlevideo.com") != std::string::npos || f.url.find(".m3u8") != std::string::npos) {
             return 700;
         }
-        // Direct AAC (format 140)
-        if (f.format_id == "140") return 600;
-        // Direct Opus formats (251, 250, 249)
         if (f.format_id == "251") return 500;
         if (f.format_id == "250") return 400;
         if (f.format_id == "249") return 300;

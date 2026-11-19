@@ -4,14 +4,31 @@
       xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
                           http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
 
-<!--
-SPDX-FileCopyrightText: 2026 Carl Schwan <carl@carlschwan.eu>
-SPDX-License-Identifier: CC0-1.0
--->
-  <kcfgfile name="tokodonrc"  stateConfig="true" />
+  <kcfgfile name="audiotuberc" stateConfig="true" />
   <group name="General">
     <entry name="LastOpenedPage" type="string">
       <default></default>
+    </entry>
+    <entry name="StartupPage" type="string">
+      <default>last</default>
+    </entry>
+    <entry name="RenderingBackend" type="string">
+      <default>auto</default>
+    </entry>
+    <entry name="AudioQuality" type="string">
+      <default>high</default>
+    </entry>
+    <entry name="HardwareAcceleration" type="bool">
+      <default>true</default>
+    </entry>
+    <entry name="TrackNotifications" type="bool">
+      <default>false</default>
+    </entry>
+    <entry name="AmbientBlur" type="bool">
+      <default>true</default>
+    </entry>
+    <entry name="SaveHistory" type="bool">
+      <default>true</default>
     </entry>
   </group>
 </kcfg>

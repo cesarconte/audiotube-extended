@@ -57,6 +57,7 @@ Item {
         anchors.fill: parent
         clip: true
         z: -2
+        visible: StateConfig.ambientBlur
         opacity: CachyPalette.isDark ? 0.28 : 0.16
 
         Image {

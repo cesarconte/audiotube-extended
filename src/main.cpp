@@ -22,6 +22,7 @@
 #include <ThreadedDatabase>
 
 #include "asyncytmusic.h"
+#include "stateconfig.h"
 
 using namespace Qt::StringLiterals;
 
@@ -44,6 +45,18 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(QStringLiteral("CachyOS"));
     QCoreApplication::setOrganizationDomain(QStringLiteral("cachyos.org"));
     QCoreApplication::setApplicationName(QStringLiteral("audiotube"));
+
+    // Aplicar motor de renderizado gráfico (RHI) según la configuración
+    if (qEnvironmentVariableIsEmpty("QSG_RHI_BACKEND")) {
+        const QString rhi = StateConfig::self()->renderingBackend();
+        if (rhi == QLatin1String("vulkan")) {
+            QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
+        } else if (rhi == QLatin1String("opengl")) {
+            QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+        } else if (rhi == QLatin1String("software")) {
+            QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
+        }
+    }
 
     KLocalizedString::setApplicationDomain("audiotube");
 

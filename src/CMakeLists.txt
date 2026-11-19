@@ -52,6 +52,7 @@ ecm_add_qml_module(audiotube URI org.kde.audiotube
     QML_FILES
         contents/ui/Main.qml
         contents/ui/AboutPage.qml
+        contents/ui/SettingsPage.qml
         contents/ui/AlbumPage.qml
         contents/ui/ArtistPage.qml
         contents/ui/PlayerFooter.qml
