@@ -21,8 +21,8 @@ Flickable {
     property int footerSpacing: 0
     property bool maximized: false
 
-    readonly property int progressBarHeight: Kirigami.Units.gridUnit / 4
-    readonly property int minimizedPlayerContentHeight: Math.round(Kirigami.Units.gridUnit * 3.5)
+    readonly property int progressBarHeight: 3
+    readonly property int minimizedPlayerContentHeight: 64
     readonly property int minimizedPlayerHeight: minimizedPlayerContentHeight + progressBarHeight
 
     readonly property string thumbnail: thumbnailSource.cachedPath
@@ -205,15 +205,16 @@ Flickable {
         Controls.Control {
             Layout.fillWidth: true
             padding: 0
-            implicitHeight: footerItem.minimizedPlayerHeight+footerSpacing
+            implicitHeight: footerItem.minimizedPlayerHeight + footerSpacing
 
-            // minimized player background
-            background: Item {
-                Rectangle {
-                    anchors.fill: parent
-                    color: CachyPalette.isDark ? Qt.rgba(0.08, 0.08, 0.12, 0.88) : Qt.rgba(0.96, 0.96, 0.98, 0.88)
-                }
+            // Minimized player background: pure Liquid Glass surface with high contrast
+            background: Rectangle {
+                id: minPlayerBg
+                color: CachyPalette.isDark
+                    ? Qt.rgba(0.11, 0.11, 0.15, 0.86 + (CachyTheme.glassOpacity * 0.08))
+                    : Qt.rgba(0.97, 0.97, 0.99, 0.88 + (CachyTheme.glassOpacity * 0.08))
 
+                // Top 1px hard structural divider
                 Rectangle {
                     anchors.top: parent.top
                     anchors.left: parent.left
@@ -223,38 +224,45 @@ Flickable {
                     z: 10
                 }
 
-                Image {
-                    opacity: 0.18
-                    source: thumbnailSource.cachedPath
-                    asynchronous: true
-
-                    anchors.fill: parent
-                    fillMode: Image.PreserveAspectCrop
-                }
-
-                layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software
-                layer.effect: MultiEffect {
-                    brightness: -0.7
-                    saturation: 1
-
-                    blur: 1.0
-                    blurMultiplier: 3.0
-                    blurEnabled: true
-                    autoPaddingEnabled: false
-                }
-
+                // Top 1px specular refraction highlight below the divider
                 Rectangle {
-                    visible: GraphicsInfo.api === GraphicsInfo.Software
+                    anchors.top: parent.top
+                    anchors.topMargin: 1
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 1
+                    color: CachyPalette.isDark ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(1, 1, 1, 0.60)
+                    z: 9
+                }
+
+                // Ambient artwork blur (subtle, non-darkening, visible only with track loaded)
+                Item {
                     anchors.fill: parent
-                    color: "black"
-                    opacity: 0.8
+                    visible: thumbnailSource.cachedPath.length > 0 && info.title.length > 0
+                    clip: true
+                    opacity: CachyPalette.isDark ? 0.22 : 0.12
+
+                    Image {
+                        id: bgArt
+                        anchors.fill: parent
+                        source: thumbnailSource.cachedPath
+                        asynchronous: true
+                        fillMode: Image.PreserveAspectCrop
+                        layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software
+                        layer.effect: MultiEffect {
+                            blur: 1.0
+                            blurMultiplier: 3.0
+                            blurEnabled: true
+                            autoPaddingEnabled: false
+                        }
+                    }
                 }
             }
 
             MinimizedPlayerControls {
                 progressBarHeight: footerItem.progressBarHeight
                 minimizedPlayerContentHeight: footerItem.minimizedPlayerContentHeight
-                height: minimizedPlayerHeight
+                height: footerItem.minimizedPlayerHeight
 
                 focus: true
                 anchors.left: parent.left
