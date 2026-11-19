@@ -27,8 +27,8 @@ CachyWindow {
     resizable: true
     cornerRadius: CachyTheme.radiusWindow
     contentPadded: false
-    sidebarWidth: sidebar.sidebarWidth
-    sidebarVisible: root.wideScreen
+    sidebarCollapsible: true
+    sidebarVisible: wideScreen
 
     readonly property alias pageStack: pageStack
     property alias searchField: searchLoader
@@ -110,12 +110,9 @@ CachyWindow {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 6
 
-            // Control de colapso de la barra lateral (expandir / contraer a riel compacto)
-            CachyToolbarButton {
-                iconName: sidebar.collapsed ? "sidebar-expand-symbolic" : "sidebar-collapse-symbolic"
-                tooltipText: sidebar.collapsed ? i18n("Expand Sidebar") : i18n("Collapse Sidebar")
+            // Control universal nativo de barra lateral (CachyOS.UI)
+            CachySidebarToggleButton {
                 visible: root.wideScreen
-                onClicked: sidebar.toggleCollapse()
             }
 
             CachyToolbarButton {
