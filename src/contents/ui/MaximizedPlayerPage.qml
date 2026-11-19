@@ -5,6 +5,7 @@
 
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Controls
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 
