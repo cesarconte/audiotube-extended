@@ -29,6 +29,7 @@ public:
     explicit VideoInfoExtractor(QObject *parent = nullptr);
 
     QUrl audioUrl() const;
+    Q_INVOKABLE bool tryNextFormat();
 
     QString videoId() const;
     void setVideoId(const QString &videoId);
@@ -51,7 +52,11 @@ public:
     Q_SIGNAL void songChanged();
 
 private:
+    void updateAudioFormats();
+
     bool m_loading = false;
     QString m_videoId;
     video_info::VideoInfo m_videoInfo;
+    std::vector<video_info::Format> m_audioFormats;
+    size_t m_currentFormatIndex = 0;
 };

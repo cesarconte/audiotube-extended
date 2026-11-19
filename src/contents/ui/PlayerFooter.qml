@@ -134,15 +134,32 @@ Flickable {
     Loader {
         id: audioLoader
         active: true
-        asynchronous: true
+        asynchronous: false
+        onLoaded: {
+            if (audioLoader.item && info.audioUrl != "") {
+                audioLoader.item.play();
+            }
+        }
         sourceComponent: MediaPlayer {
             id: audio
 
             property int prevPlaybackState: MediaPlayer.StoppedState
             source: info.audioUrl
-            onSourceChanged: play()
+            onSourceChanged: {
+                if (source != "") {
+                    play();
+                }
+            }
 
-            onPlaybackStateChanged : {
+            onErrorOccurred: (error, errorString) => {
+                console.warn("MediaPlayer errorOccurred:", error, errorString);
+                if (info.tryNextFormat()) {
+                    console.log("Retrying with fallback audio format...");
+                    play();
+                }
+            }
+
+            onPlaybackStateChanged: {
                 if (mediaStatus == MediaPlayer.BufferingMedia && playbackState == MediaPlayer.StoppedState && prevPlaybackState == MediaPlayer.PlayingState) {
                     Qt.callLater(function() {
                         play()
@@ -153,7 +170,13 @@ Flickable {
             }
 
             onMediaStatusChanged: {
-                if (mediaStatus === MediaPlayer.EndOfMedia) {
+                if (mediaStatus === MediaPlayer.InvalidMedia) {
+                    console.warn("MediaPlayer InvalidMedia detected");
+                    if (info.tryNextFormat()) {
+                        console.log("Retrying with fallback audio format...");
+                        play();
+                    }
+                } else if (mediaStatus === MediaPlayer.EndOfMedia) {
                     console.log("Song ended");
                     UserPlaylistModel.next();
                 }

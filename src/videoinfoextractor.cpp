@@ -14,6 +14,8 @@ VideoInfoExtractor::VideoInfoExtractor(QObject *parent)
     connect(this, &VideoInfoExtractor::videoIdChanged, this, [this] {
         if (m_videoId.isEmpty()) {
             m_videoInfo = {};
+            m_audioFormats.clear();
+            m_currentFormatIndex = 0;
             Q_EMIT songChanged();
             return;
         }
@@ -23,65 +25,107 @@ VideoInfoExtractor::VideoInfoExtractor(QObject *parent)
         auto future = YTMusicThread::instance()->extractVideoInfo(QString::fromStdString(m_videoId.toStdString()));
         QCoro::connect(std::move(future), this, [this](const video_info::VideoInfo &videoInfo) {
             m_videoInfo = videoInfo;
+            updateAudioFormats();
             setLoading(false);
             Q_EMIT songChanged();
         });
     });
 }
 
-QUrl VideoInfoExtractor::audioUrl() const
+void VideoInfoExtractor::updateAudioFormats()
 {
-    if (m_videoId.isEmpty()) {
-        return {};
-    }
+    m_audioFormats.clear();
+    m_currentFormatIndex = 0;
 
     if (m_videoInfo.formats.empty()) {
-        return {};
+        return;
     }
-
-    std::vector<video_info::Format> audioFormats;
 
     qWarning() << "available formats:";
     for (const auto &f : m_videoInfo.formats) {
         qWarning() << "  " << "acodec" << f.acodec << "format_id" << f.format_id << "quality" << f.quality << "vcodec" << f.vcodec;
     }
 
-    // filter audio only formats
-    std::copy_if(m_videoInfo.formats.begin(), m_videoInfo.formats.end(), std::back_inserter(audioFormats),
+    // Filter audio only formats
+    std::copy_if(m_videoInfo.formats.begin(), m_videoInfo.formats.end(), std::back_inserter(m_audioFormats),
         [](const video_info::Format &format) {
-        return (!format.acodec.has_value() || format.acodec != "none") && format.vcodec == "none";
-    });
+            return (!format.acodec.has_value() || format.acodec != "none") && format.vcodec == "none";
+        });
 
-    const auto isOpus = [](const video_info::Format &format) {
-        return format.acodec == "opus";
+    auto score = [](const video_info::Format &f) -> int {
+        // High quality AAC HLS audio (format 234, ~134 kbps - unblocked by YouTube CDN bot protection)
+        if (f.format_id == "234") return 1000;
+        // Standard AAC HLS audio (format 233, ~48 kbps - unblocked)
+        if (f.format_id == "233") return 900;
+        // Direct M4A audio (format 139, ~48 kbps AAC - unblocked)
+        if (f.format_id == "139") return 800;
+        // Any other HLS manifest audio stream
+        if (f.url.find("manifest.googlevideo.com") != std::string::npos || f.url.find(".m3u8") != std::string::npos) {
+            return 700;
+        }
+        // Direct AAC (format 140)
+        if (f.format_id == "140") return 600;
+        // Direct Opus formats (251, 250, 249)
+        if (f.format_id == "251") return 500;
+        if (f.format_id == "250") return 400;
+        if (f.format_id == "249") return 300;
+        return f.quality.has_value() ? static_cast<int>(*f.quality * 10) : 0;
     };
 
-    std::stable_sort(audioFormats.begin(), audioFormats.end(), [&](const video_info::Format &a, const video_info::Format &b) {
-        if (a.quality != b.quality) {
-            return a.quality > b.quality;
+    std::stable_sort(m_audioFormats.begin(), m_audioFormats.end(), [&](const auto &a, const auto &b) {
+        int scoreA = score(a);
+        int scoreB = score(b);
+        if (scoreA != scoreB) {
+            return scoreA > scoreB;
         }
-        return isOpus(a) && !isOpus(b);
+        return a.quality.value_or(0) > b.quality.value_or(0);
     });
 
-    if (audioFormats.empty()) {
-        qWarning() << "No audio track found, falling back to worst-quality video";
+    if (m_audioFormats.empty()) {
+        qWarning() << "No audio-only track found, falling back to worst-quality video";
 
-        std::copy_if(m_videoInfo.formats.begin(), m_videoInfo.formats.end(), std::back_inserter(audioFormats), [](const video_info::Format &format) {
+        std::copy_if(m_videoInfo.formats.begin(), m_videoInfo.formats.end(), std::back_inserter(m_audioFormats), [](const video_info::Format &format) {
             return format.acodec != "none";
         });
 
-        std::sort(audioFormats.begin(), audioFormats.end(), [](const video_info::Format &a, const video_info::Format &b) {
+        std::sort(m_audioFormats.begin(), m_audioFormats.end(), [](const video_info::Format &a, const video_info::Format &b) {
             return a.quality < b.quality;
         });
     }
 
-    if (audioFormats.empty()) {
+    qWarning() << "Prioritized audio formats:";
+    for (size_t i = 0; i < m_audioFormats.size(); ++i) {
+        qWarning() << " [" << i << "] format_id:" << QString::fromStdString(m_audioFormats[i].format_id)
+                   << "acodec:" << m_audioFormats[i].acodec
+                   << "score:" << score(m_audioFormats[i]);
+    }
+}
+
+QUrl VideoInfoExtractor::audioUrl() const
+{
+    if (m_videoId.isEmpty() || m_audioFormats.empty() || m_currentFormatIndex >= m_audioFormats.size()) {
         return {};
     }
 
-    qWarning() << "chosen url:" << audioFormats.front().url;
+    const auto &chosen = m_audioFormats[m_currentFormatIndex];
+    qWarning() << "chosen audio url (index" << m_currentFormatIndex << "of" << m_audioFormats.size()
+               << ", format_id" << QString::fromStdString(chosen.format_id) << "):"
+               << QString::fromStdString(chosen.url);
 
-    return QUrl(QString::fromStdString(audioFormats.front().url));
+    return QUrl(QString::fromStdString(chosen.url));
+}
+
+bool VideoInfoExtractor::tryNextFormat()
+{
+    if (m_currentFormatIndex + 1 < m_audioFormats.size()) {
+        m_currentFormatIndex++;
+        qWarning() << "Switching to fallback audio format index" << m_currentFormatIndex
+                   << "format_id:" << QString::fromStdString(m_audioFormats[m_currentFormatIndex].format_id);
+        Q_EMIT songChanged();
+        return true;
+    }
+    qWarning() << "No more fallback audio formats available";
+    return false;
 }
 
 QString VideoInfoExtractor::videoId() const
