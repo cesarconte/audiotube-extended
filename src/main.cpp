@@ -40,16 +40,36 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     KLocalizedString::setApplicationDomain("audiotube");
 
     KAboutData about(QStringLiteral("audiotube"),
-                     i18n("AudioTube"),
+                     i18n("AudioTube Extended"),
                      QStringLiteral(AUDIOTUBE_VERSION_STRING),
-                     i18nc("YouTube Music is a music streaming service by Google", "Stream music from YouTube Music"),
+                     i18n("Cliente moderno de YouTube Music para CachyOS. Bifurcación (fork) y migración de la aplicación original AudioTube de KDE adaptada a los estándares de diseño CachyOS.UI Golden Gate / Liquid Glass."),
                      KAboutLicense::GPL_V3,
-                     i18n("© 2021–2024 Jonah Brüchert, 2021–2024 KDE Community"));
-    about.addAuthor(i18n("Jonah Brüchert"), i18n("Maintainer"), QStringLiteral("jbb@kaidan.im"));
-    about.addAuthor(i18n("Mathis Brüchert"), i18n("Designer"), QStringLiteral("mbb@kaidan.im"));
+                     i18n("© 2026 César Conte (migración CachyOS.UI)\n© 2021–2024 Jonah Brüchert, Mathis Brüchert, Comunidad KDE (versión original)"));
+
+    // Autor de la migración CachyOS.UI
+    about.addAuthor(i18n("César Conte"),
+                    i18n("Autor de la migración y adaptación al ecosistema CachyOS.UI"),
+                    QStringLiteral("yugurta@gmail.com"),
+                    QStringLiteral("https://github.com/cesarconte"));
+
+    // Autores de la versión original de KDE
+    about.addCredit(i18n("Jonah Brüchert"),
+                    i18n("Autor y mantenedor de la versión original de AudioTube (KDE)"),
+                    QStringLiteral("jbb@kaidan.im"));
+    about.addCredit(i18n("Mathis Brüchert"),
+                    i18n("Diseñador de la versión original de AudioTube (KDE)"),
+                    QStringLiteral("mbb@kaidan.im"));
+    about.addCredit(i18n("Comunidad KDE"),
+                    i18n("Creadores y mantenedores del proyecto original"));
+
     about.setTranslator(i18nc("NAME OF TRANSLATORS", "Your names"), i18nc("EMAIL OF TRANSLATORS", "Your emails"));
-    about.setOrganizationDomain("kde.org");
-    about.setBugAddress("https://bugs.kde.org/describecomponents.cgi?product=audiotube");
+    about.setOrganizationDomain("cachyos.org");
+    about.setHomepage(QStringLiteral("https://github.com/cesarconte/audiotube-extended"));
+    about.setBugAddress("https://github.com/cesarconte/audiotube-extended/issues");
+    about.setOtherText(i18n("Esta aplicación es una bifurcación (fork) independiente optimizada para CachyOS y el sistema de diseño CachyOS.UI Golden Gate / Liquid Glass. Todo el reconocimiento por la arquitectura base y la integración con YouTube Music pertenece a sus autores originales en KDE."));
+
+    KAboutData::setApplicationData(about);
+
     auto future = YTMusicThread::instance()->version();
     QCoro::connect(std::move(future), &app, [&about](const auto &version) {
         about.addComponent(QStringLiteral("ytmusicapi"),
