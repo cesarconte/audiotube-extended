@@ -190,7 +190,7 @@ Item {
 
                             CachyIcon {
                                 anchors.centerIn: parent
-                                source: "audio-x-generic"
+                                name: "audio-x-generic"
                                 width: 64
                                 height: 64
                                 visible: root.thumbnail.length === 0
@@ -391,7 +391,7 @@ Item {
 
                         CachyIcon {
                             anchors.centerIn: parent
-                            source: "media-skip-backward"
+                            name: "media-skip-backward"
                             width: 18
                             height: 18
                             color: "#FFFFFF"
@@ -431,7 +431,7 @@ Item {
                         CachyIcon {
                             anchors.centerIn: parent
                             anchors.horizontalCenterOffset: (root.audio.playbackState === MediaPlayer.PlayingState) ? 0 : 1.5
-                            source: (root.audio.playbackState === MediaPlayer.PlayingState)
+                            name: (root.audio.playbackState === MediaPlayer.PlayingState)
                                 ? "media-playback-pause"
                                 : "media-playback-start"
                             width: 24
@@ -472,7 +472,7 @@ Item {
 
                         CachyIcon {
                             anchors.centerIn: parent
-                            source: "media-skip-forward"
+                            name: "media-skip-forward"
                             width: 18
                             height: 18
                             color: "#FFFFFF"
