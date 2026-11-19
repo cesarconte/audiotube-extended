@@ -13,6 +13,9 @@ CachyScrollablePage {
     title: i18n("About AudioTube Extended")
     objectName: "aboutPage"
 
+    // Margen horizontal generoso para despegar todo el contenido del borde/divisor
+    readonly property int pageMargin: 36
+
     function close() {
         if (root.pageStack && root.pageStack.layers && root.pageStack.layers.depth > 0) {
             root.pageStack.layers.pop();
@@ -25,12 +28,19 @@ CachyScrollablePage {
         }
     }
 
+    // Fondo opaco sólido para garantizar cero transparencias o textos fantasma superpuestos
+    Rectangle {
+        anchors.fill: parent
+        z: -1
+        color: CachyPalette.isDark ? Qt.rgba(0.12, 0.12, 0.15, 1.0) : Qt.rgba(0.97, 0.97, 0.99, 1.0)
+    }
+
     header: Item {
-        implicitHeight: 44
+        implicitHeight: 52
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: CachyTheme.marginWindow
-            anchors.rightMargin: CachyTheme.marginWindow
+            anchors.leftMargin: root.pageMargin
+            anchors.rightMargin: root.pageMargin
 
             CachyHeading {
                 Layout.fillWidth: true
@@ -51,7 +61,7 @@ CachyScrollablePage {
     ColumnLayout {
         Layout.fillWidth: true
         Layout.topMargin: CachyTheme.spacingLarge
-        spacing: 10
+        spacing: 12
 
         // Icono de la aplicación
         Image {
@@ -74,9 +84,9 @@ CachyScrollablePage {
         // Etiqueta distintiva de bifurcación
         Rectangle {
             Layout.alignment: Qt.AlignHCenter
-            implicitWidth: forkLabel.implicitWidth + 16
-            implicitHeight: 24
-            radius: 12
+            implicitWidth: forkLabel.implicitWidth + 18
+            implicitHeight: 26
+            radius: 13
             color: Qt.rgba(CachyTheme.accentColor.r, CachyTheme.accentColor.g, CachyTheme.accentColor.b, 0.16)
             border.width: 1
             border.color: Qt.rgba(CachyTheme.accentColor.r, CachyTheme.accentColor.g, CachyTheme.accentColor.b, 0.40)
@@ -103,8 +113,8 @@ CachyScrollablePage {
         // Descripción general
         Controls.Label {
             Layout.fillWidth: true
-            Layout.leftMargin: CachyTheme.marginWindow
-            Layout.rightMargin: CachyTheme.marginWindow
+            Layout.leftMargin: root.pageMargin
+            Layout.rightMargin: root.pageMargin
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             font.pixelSize: 13
@@ -118,12 +128,17 @@ CachyScrollablePage {
     // =========================================================================
     CachyFormHeader {
         title: i18n("Migración y Adaptación a CachyOS.UI")
+        Layout.fillWidth: true
+        Layout.leftMargin: root.pageMargin + 6
+        Layout.rightMargin: root.pageMargin
+        Layout.topMargin: 20
+        Layout.bottomMargin: 6
     }
 
     CachyFormCard {
         Layout.fillWidth: true
-        Layout.leftMargin: CachyTheme.marginWindow
-        Layout.rightMargin: CachyTheme.marginWindow
+        Layout.leftMargin: root.pageMargin
+        Layout.rightMargin: root.pageMargin
 
         CachyFormButtonDelegate {
             text: i18n("César Conte")
@@ -138,12 +153,17 @@ CachyScrollablePage {
     // =========================================================================
     CachyFormHeader {
         title: i18n("Autores de la Versión Original (KDE)")
+        Layout.fillWidth: true
+        Layout.leftMargin: root.pageMargin + 6
+        Layout.rightMargin: root.pageMargin
+        Layout.topMargin: 20
+        Layout.bottomMargin: 6
     }
 
     CachyFormCard {
         Layout.fillWidth: true
-        Layout.leftMargin: CachyTheme.marginWindow
-        Layout.rightMargin: CachyTheme.marginWindow
+        Layout.leftMargin: root.pageMargin
+        Layout.rightMargin: root.pageMargin
 
         CachyFormButtonDelegate {
             text: i18n("Jonah Brüchert")
@@ -172,12 +192,17 @@ CachyScrollablePage {
     // =========================================================================
     CachyFormHeader {
         title: i18n("Código Fuente y Enlaces")
+        Layout.fillWidth: true
+        Layout.leftMargin: root.pageMargin + 6
+        Layout.rightMargin: root.pageMargin
+        Layout.topMargin: 20
+        Layout.bottomMargin: 6
     }
 
     CachyFormCard {
         Layout.fillWidth: true
-        Layout.leftMargin: CachyTheme.marginWindow
-        Layout.rightMargin: CachyTheme.marginWindow
+        Layout.leftMargin: root.pageMargin
+        Layout.rightMargin: root.pageMargin
 
         CachyFormButtonDelegate {
             text: i18n("Repositorio del Fork (GitHub)")
@@ -206,12 +231,17 @@ CachyScrollablePage {
     // =========================================================================
     CachyFormHeader {
         title: i18n("Licencia y Componentes")
+        Layout.fillWidth: true
+        Layout.leftMargin: root.pageMargin + 6
+        Layout.rightMargin: root.pageMargin
+        Layout.topMargin: 20
+        Layout.bottomMargin: 6
     }
 
     CachyFormCard {
         Layout.fillWidth: true
-        Layout.leftMargin: CachyTheme.marginWindow
-        Layout.rightMargin: CachyTheme.marginWindow
+        Layout.leftMargin: root.pageMargin
+        Layout.rightMargin: root.pageMargin
 
         CachyFormButtonDelegate {
             text: i18n("Licencia")
@@ -229,7 +259,7 @@ CachyScrollablePage {
     }
 
     footer: Item {
-        implicitHeight: 56
+        implicitHeight: 64
 
         CachyButton {
             anchors.centerIn: parent
