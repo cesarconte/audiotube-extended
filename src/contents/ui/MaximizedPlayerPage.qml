@@ -12,7 +12,6 @@ import QtQuick.Layouts
 import QtMultimedia
 
 import org.kde.kirigami as Kirigami
-import org.kde.kirigamiaddons.components as Components
 import org.kde.audiotube
 import CachyOS.UI
 
@@ -23,12 +22,23 @@ Item {
     required property MediaPlayer audio
     required property LyricsModel syncedLyrics
     required property string thumbnail
-    readonly property bool isWidescreen: width >= Kirigami.Units.gridUnit * 50
-    readonly property bool wideScreen: isWidescreen
+    readonly property bool wideScreen: root.width >= 540
 
     signal requestClose()
 
-    onWidthChanged: { sideDrawer.Layout.minimumWidth = -1 }
+    onWidthChanged: {
+        if (sideDrawer.visible && !sideDrawer.collapsed && !sideDrawer.isAnimating) {
+            if (root.width >= 540) {
+                let maxAllowed = root.width - 280;
+                if (sideDrawer.targetWidth > maxAllowed) {
+                    sideDrawer.targetWidth = Math.max(260, maxAllowed);
+                }
+                sideDrawer.Layout.preferredWidth = sideDrawer.targetWidth;
+            } else {
+                sideDrawer.Layout.preferredWidth = root.width;
+            }
+        }
+    }
 
     // =========================================================================
     // FONDO — Base opaca Liquid Glass + Ambient Artwork Blur + Divisores
@@ -531,81 +541,39 @@ Item {
                     Layout.preferredHeight: 16
                 }
 
-                // F. Barra de acciones de utilidad (Favoritos, Volumen, Letras, Compartir, Playlist, Cola)
+                // F. Barra de las 5 acciones principales (Favoritos, Letras, Compartir, Playlist, Cola)
                 RowLayout {
                     id: actionToolbar
                     Layout.alignment: Qt.AlignHCenter
-                    spacing: 14
+                    spacing: 16
 
-                    // Favorito
+                    // 1. Favorito
                     CachyToolbarButton {
                         id: favouriteButton
                         implicitWidth: 32
                         implicitHeight: 32
                         readonly property QtObject favouriteWatcher: Library.favouriteWatcher(root.info.videoId)
-                        iconName: favouriteWatcher && favouriteWatcher.isFavourite ? "starred-symbolic" : "non-starred-symbolic"
-                        tooltipText: favouriteWatcher && favouriteWatcher.isFavourite ? i18n("Remove from Favorites") : i18n("Add to Favorites")
+                        iconName: (favouriteWatcher && favouriteWatcher.isFavourite) ? "starred-symbolic" : "non-starred-symbolic"
+                        tooltipText: (favouriteWatcher && favouriteWatcher.isFavourite) ? i18n("Remove from Favorites") : i18n("Add to Favorites")
                         onClicked: {
-                            if (favouriteWatcher) {
-                                if (favouriteWatcher.isFavourite) {
-                                    Library.removeFavourite(root.info.videoId);
-                                } else {
-                                    let index = UserPlaylistModel.index(UserPlaylistModel.currentIndex, 0);
-                                    let videoId = UserPlaylistModel.data(index, UserPlaylistModel.VideoId);
-                                    let title = UserPlaylistModel.data(index, UserPlaylistModel.Title);
-                                    let artist = UserPlaylistModel.data(index, UserPlaylistModel.Artists);
-                                    let artistId = UserPlaylistModel.data(index, UserPlaylistModel.ArtistId);
-                                    let album = UserPlaylistModel.data(index, UserPlaylistModel.Album);
-                                    let albumId = UserPlaylistModel.data(index, UserPlaylistModel.AlbumId);
+                            if (favouriteWatcher && favouriteWatcher.isFavourite) {
+                                Library.removeFavourite(root.info.videoId);
+                            } else {
+                                let index = UserPlaylistModel.index(UserPlaylistModel.currentIndex, 0);
+                                let videoId = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.VideoId) : "") || root.info.videoId;
+                                let title = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.Title) : "") || root.info.title;
+                                let artist = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.Artists) : "") || root.info.artist;
+                                let artistId = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.ArtistId) : "") || root.info.artistId;
+                                let album = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.Album) : "") || root.info.album;
+                                let albumId = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.AlbumId) : "") || root.info.albumId;
+                                if (videoId && videoId.length > 0) {
                                     Library.addFavourite(videoId, title, artist, artistId, album, albumId);
                                 }
                             }
                         }
                     }
 
-                    // Control de volumen integrado
-                    RowLayout {
-                        spacing: 6
-                        visible: root.isWidescreen
-
-                        CachyToolbarButton {
-                            id: muteButton
-                            implicitWidth: 32
-                            implicitHeight: 32
-                            iconName: {
-                                if (!root.audio || !root.audio.audioOutput) return "audio-volume-medium";
-                                if (root.audio.audioOutput.muted || root.audio.audioOutput.volume === 0) return "audio-volume-muted";
-                                if (root.audio.audioOutput.volume < 0.4) return "audio-volume-low";
-                                if (root.audio.audioOutput.volume < 0.7) return "audio-volume-medium";
-                                return "audio-volume-high";
-                            }
-                            tooltipText: (root.audio && root.audio.audioOutput && root.audio.audioOutput.muted) ? i18n("Unmute") : i18n("Mute")
-                            onClicked: {
-                                if (root.audio && root.audio.audioOutput) {
-                                    root.audio.audioOutput.muted = !root.audio.audioOutput.muted;
-                                }
-                            }
-                        }
-
-                        CachySlider {
-                            id: volumeSlider
-                            Layout.preferredWidth: 84
-                            accentColor: CachyTheme.accentColor
-                            from: 0.0
-                            to: 1.0
-                            value: root.audio && root.audio.audioOutput ? root.audio.audioOutput.volume : 1.0
-                            onMoved: {
-                                if (root.audio && root.audio.audioOutput) {
-                                    root.audio.audioOutput.volume = value;
-                                    if (root.audio.audioOutput.muted && value > 0) {
-                                        root.audio.audioOutput.muted = false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Conmutador de Letras
+                    // 2. Conmutador de Letras
                     CachyToolbarButton {
                         id: lyricsButton
                         implicitWidth: 32
@@ -633,18 +601,24 @@ Item {
                         }
                     }
 
-                    // Compartir Canción
+                    // 3. Compartir Canción
                     CachyToolbarButton {
                         id: shareButton
                         implicitWidth: 32
                         implicitHeight: 32
                         iconName: "document-share"
                         tooltipText: i18n("Share Song")
-                        enabled: root.info.title ? root.info.title.length > 0 : false
-                        onClicked: openShareMenu(root.info.title, UserPlaylistModel.webUrl)
+                        enabled: (root.info.title && root.info.title.length > 0) || (root.info.videoId && root.info.videoId.length > 0)
+                        onClicked: {
+                            let songUrl = UserPlaylistModel.webUrl;
+                            if (!songUrl || songUrl.length === 0) {
+                                songUrl = "https://music.youtube.com/watch?v=" + root.info.videoId;
+                            }
+                            openShareMenu(root.info.title, songUrl);
+                        }
                     }
 
-                    // Añadir a lista de reproducción local
+                    // 4. Añadir a lista de reproducción local
                     CachyToolbarButton {
                         id: addToPlaylistButton
                         implicitWidth: 32
@@ -654,37 +628,30 @@ Item {
                         enabled: root.info.videoId ? root.info.videoId.length > 0 : false
                         onClicked: {
                             let index = UserPlaylistModel.index(UserPlaylistModel.currentIndex, 0);
-                            playlistsDialog.videoId = UserPlaylistModel.data(index, UserPlaylistModel.VideoId);
-                            playlistsDialog.songTitle = UserPlaylistModel.data(index, UserPlaylistModel.Title);
-                            playlistsDialog.artists = UserPlaylistModel.data(index, UserPlaylistModel.Artists);
-                            playlistsDialog.artistId = UserPlaylistModel.data(index, UserPlaylistModel.ArtistId);
-                            playlistsDialog.album = UserPlaylistModel.data(index, UserPlaylistModel.Album);
-                            playlistsDialog.albumId = UserPlaylistModel.data(index, UserPlaylistModel.AlbumId);
+                            playlistsDialog.videoId = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.VideoId) : "") || root.info.videoId;
+                            playlistsDialog.songTitle = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.Title) : "") || root.info.title;
+                            playlistsDialog.artists = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.Artists) : "") || root.info.artist;
+                            playlistsDialog.artistId = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.ArtistId) : "") || root.info.artistId;
+                            playlistsDialog.album = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.Album) : "") || root.info.album;
+                            playlistsDialog.albumId = (index.valid ? UserPlaylistModel.data(index, UserPlaylistModel.AlbumId) : "") || root.info.albumId;
                             playlistsDialog.open();
                         }
                     }
 
-                    // Conmutador de Cola de reproducción
+                    // 5. Conmutador de Cola de reproducción
                     CachyToolbarButton {
                         id: queueButton
                         implicitWidth: 32
                         implicitHeight: 32
-                        iconName: "amarok_playlist"
-                        tooltipText: sideDrawer.visible ? i18n("Hide Queue") : i18n("Show Queue")
+                        iconName: "view-media-playlist"
+                        tooltipText: (sideDrawer.visible && !sideDrawer.collapsed) ? i18n("Hide Queue") : i18n("Show Queue")
                         checkable: true
                         checked: sideDrawer.visible && !sideDrawer.collapsed
                         onClicked: {
-                            if (root.wideScreen) {
-                                if (!sideDrawer.collapsed && sideDrawer.visible) {
-                                    collapse.running = true;
-                                    sideDrawer.collapsed = true;
-                                } else {
-                                    sideDrawer.visible = true;
-                                    show.running = true;
-                                    sideDrawer.collapsed = false;
-                                }
+                            if (sideDrawer.visible && !sideDrawer.collapsed) {
+                                sideDrawer.closeDrawer();
                             } else {
-                                queueDrawer.open();
+                                sideDrawer.openDrawer();
                             }
                         }
                     }
@@ -698,36 +665,60 @@ Item {
             }
         }
 
+        // =====================================================================
+        // PANEL LATERAL DE LA COLA (Queue Drawer) — CachyOS.UI Golden Gate
+        // =====================================================================
         Item {
-            onWidthChanged: {
-                if (!wideScreen) {
-                    collapse.running=true
-                    collapsed=true
-                    queueButton.checked=false
+            id: sideDrawer
+            property bool collapsed: true
+            property bool isAnimating: showAnim.running || collapseAnim.running
+            property real targetWidth: root.width < 540 ? root.width : Math.min(420, Math.max(300, root.width * 0.36))
+
+            visible: false
+            clip: true
+            Layout.fillHeight: true
+            Layout.fillWidth: false
+            Layout.preferredWidth: 0
+
+            NumberAnimation {
+                id: showAnim
+                target: sideDrawer
+                property: "Layout.preferredWidth"
+                from: 0
+                to: sideDrawer.targetWidth
+                duration: 220
+                easing.type: Easing.OutCubic
+            }
+
+            NumberAnimation {
+                id: collapseAnim
+                target: sideDrawer
+                property: "Layout.preferredWidth"
+                from: sideDrawer.Layout.preferredWidth
+                to: 0
+                duration: 180
+                easing.type: Easing.OutCubic
+                onFinished: {
+                    sideDrawer.visible = false;
+                    sideDrawer.collapsed = true;
                 }
             }
-            property bool collapsed: true
-            id: sideDrawer
-            Layout.fillWidth: true
-            Layout.maximumWidth: -1
-            Layout.preferredWidth: Math.max(350, root.width/3)
 
-            Layout.fillHeight: true
-            visible: false
-            NumberAnimation on Layout.maximumWidth {
-                id: collapse
-                easing.type: Easing.OutCubic
-                running: false
-                from: Math.min(sideDrawer.Layout.preferredWidth, sideDrawer.Layout.maximumWidth); to: 0
-                onFinished: { sideDrawer.visible=false}
+            function openDrawer() {
+                collapseAnim.stop();
+                visible = true;
+                collapsed = false;
+                targetWidth = root.width < 540 ? root.width : Math.min(420, Math.max(300, root.width * 0.36));
+                showAnim.to = targetWidth;
+                showAnim.restart();
             }
-            NumberAnimation on Layout.maximumWidth {
-                id: show
-                easing.type: Easing.OutCubic
-                running: false
-                from: 0; to: Math.min(sideDrawer.Layout.preferredWidth, root.width - mainContent.Layout.minimumWidth)
-                //onFinished: { sideDrawer.visible=false}
+
+            function closeDrawer() {
+                showAnim.stop();
+                collapseAnim.from = Layout.preferredWidth;
+                collapseAnim.restart();
             }
+
             // Divisor estructural izquierdo de 1px
             Rectangle {
                 anchors.left: parent.left
@@ -741,21 +732,24 @@ Item {
             // Fondo Liquid Glass de la barra lateral de cola
             Rectangle {
                 anchors.fill: parent
-                color: CachyPalette.isDark ? Qt.rgba(0.09, 0.09, 0.13, 0.94) : Qt.rgba(0.96, 0.96, 0.98, 0.94)
+                color: CachyPalette.isDark ? Qt.rgba(0.09, 0.09, 0.13, 0.96) : Qt.rgba(0.96, 0.96, 0.98, 0.96)
             }
 
+            // Tirador interactivo de redimensionamiento
             MouseArea {
                 id: queueResizer
-
                 anchors.horizontalCenter: parent.left
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                width: Kirigami.Units.gridUnit
-
+                width: 8
+                z: 20
                 cursorShape: Qt.SplitHCursor
+                enabled: root.width >= 540
                 onPositionChanged: (mouse) => {
-                    if(Math.max(sideDrawer.width - (mouse.x - width/2), queueFooter.Layout.minimumWidth) + mainContent.Layout.minimumWidth < root.width){
-                        sideDrawer.Layout.preferredWidth = sideDrawer.Layout.minimumWidth = sideDrawer.Layout.maximumWidth = Math.max(sideDrawer.width - (mouse.x - width/2), queueFooter.Layout.minimumWidth)
+                    let newW = sideDrawer.width - mouse.x;
+                    if (newW >= 260 && newW <= (root.width - 280)) {
+                        sideDrawer.targetWidth = newW;
+                        sideDrawer.Layout.preferredWidth = newW;
                     }
                 }
             }
@@ -763,405 +757,224 @@ Item {
             ColumnLayout {
                 spacing: 0
                 anchors.fill: parent
-                ScrollView {
-                    id: playListScrollView
 
-                    contentWidth: availableWidth
-
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.leftMargin:10
-
-                    ListView {
-                        id: playListView
-
-                        reuseItems: true
-
-                        spacing: 5
-                        rightMargin: 10
-                        topMargin:10
-                        bottomMargin: 10
-                        clip: true
-                        contentWidth: playListScrollView.contentWidth - rightMargin - leftMargin
-
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
-
-                        BusyIndicator {
-                            anchors.centerIn: parent
-                            visible: UserPlaylistModel.loading || UserPlaylistModel.loading
-                        }
-
-                        model: UserPlaylistModel
-
-                        moveDisplaced: Transition {
-                            YAnimator {
-                                duration: Kirigami.Units.mediumDuration
-                                easing.type: Easing.InOutQuad
-                            }
-                        }
-
-                        delegate: Item{
-                            //listItemDragHandle requires queueEntry to be a child of the delegate, and not the delegate itself
-                            id: delegateItem
-
-                            required property string title
-                            required property string videoId
-                            required property string artists
-                            required property bool isCurrent
-                            required property int index
-                            width: queueEntry.implicitWidth
-                            height: queueEntry.implicitHeight
-
-                            ItemDelegate {
-                                id: queueEntry
-
-                                width: playListView.contentWidth
-
-                                background: Rectangle{
-                                    radius: 7
-                                    color:
-                                    if (parent.down) {
-                                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.3)
-                                    } else if (parent.hovered) {
-                                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
-                                    } else if (parent.highlighted) {
-                                        Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.hoverColor, "transparent", 0.7)
-                                    } else {
-                                        Qt.rgba(0, 0, 0, 0.4)
-                                    }
-
-                                    border.color:
-                                    if (parent.down){
-                                        Kirigami.Theme.hoverColor
-                                    } else if (parent.hovered) {
-                                        Kirigami.Theme.hoverColor
-                                    } else {
-                                        Qt.rgba(1, 1, 1, 0)
-                                    }
-
-                                    border.width: 1
-                                }
-                                highlighted: isCurrent
-                                onClicked: UserPlaylistModel.skipTo(videoId)
-                                contentItem: RowLayout {
-                                    id: contentLayout
-
-                                    Item {
-                                        width: handle.width
-                                        height: handle.height
-                                        Kirigami.ListItemDragHandle {
-                                            id: handle
-                                            Layout.fillHeight: true
-                                            listItem: queueEntry
-                                            listView: playListView
-                                            onMoveRequested: UserPlaylistModel.moveRow(oldIndex, newIndex)
-                                        }
-                                        Rectangle {
-                                            visible: GraphicsInfo.api !== GraphicsInfo.Software
-                                            anchors.fill: handle
-                                            layer.enabled: true
-                                            layer.effect: MultiEffect {
-                                                maskSource: handle
-                                                maskEnabled: true
-                                            }
-                                        }
-                                    }
-                                    ThumbnailSource {
-                                        id: delegateThumbnailSource
-                                        videoId: delegateItem.videoId
-                                    }
-                                    RoundedImage {
-                                        source: delegateThumbnailSource.cachedPath
-                                        Layout.margins: 2.5
-                                        height: column.implicitHeight
-                                        width: column.implicitHeight
-                                        radius: 5
-                                    }
-
-                                    ColumnLayout {
-                                        id: column
-                                        Layout.margins: 5
-
-                                        Layout.fillWidth: true
-                                        Layout.fillHeight: true
-
-                                        Kirigami.Heading {
-                                            elide: Text.ElideRight
-                                            Layout.fillWidth: true
-                                            level: 2
-                                            text: delegateItem.title
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                ToolTip.text: parent.text
-                                                ToolTip.delay: Kirigami.Units.toolTipDelay
-                                                ToolTip.visible: parent.truncated ? (Kirigami.Settings.isMobile ? containsPress : containsMouse) : false
-                                            }
-                                        }
-
-                                        Label {
-                                            elide: Text.ElideRight
-                                            Layout.fillWidth: true
-                                            color: Kirigami.Theme.disabledTextColor
-                                            text: delegateItem.artists
-                                        }
-
-                                    }
-                                    ToolButton {
-                                        text: i18n("Remove Song")
-                                        icon.name: "list-remove"
-                                        icon.color: "white"
-                                        display: AbstractButton.IconOnly
-                                        onClicked: UserPlaylistModel.remove(delegateItem.videoId)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-
-                Kirigami.Separator {
-                    color: "white"
-                    opacity: 0.3
-                    Layout.fillWidth: true
-                }
-
-                RowLayout {
-                    id: queueFooter
-
-                    Layout.margins: Kirigami.Units.gridUnit * 0.5
-                    enabled: playListView.count != 0
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    ToolButton {
-                        id: clearPlaylistButton
-
-                        Layout.preferredHeight: Kirigami.Units.gridUnit * 2.5
-                        Layout.maximumWidth: height
-                        Layout.preferredWidth: height
-
-                        text: i18n("Clear Queue")
-                        icon {
-                            name: "edit-clear-all"
-                            color: "white"
-                        }
-                        display: AbstractButton.IconOnly
-
-                        ToolTip.text: text
-                        ToolTip.delay: Kirigami.Units.toolTipDelay
-                        ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-
-                        onClicked: UserPlaylistModel.clearExceptCurrent()
-
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
-                    }
-
-                    ToolButton {
-                        id: shuffleButton
-                        Layout.preferredHeight: Math.round(Kirigami.Units.gridUnit * 2.5)
-                        Layout.maximumWidth: height
-                        Layout.preferredWidth: height
-
-                        onClicked: UserPlaylistModel.shufflePlaylist()
-
-                        text: i18n("Shuffle Queue")
-
-                        ToolTip.text: text
-                        ToolTip.delay: Kirigami.Units.toolTipDelay
-                        ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-
-                        icon {
-                            name: "media-playlist-shuffle"
-                            color: "white"
-                        }
-                        display: AbstractButton.IconOnly
-                        Kirigami.Theme.colorSet: Kirigami.Theme.Complementary
-                        Kirigami.Theme.inherit: false
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-                }
-            }
-        }
-
-        Components.BottomDrawer {
-            id: queueDrawer
-
-            parent: applicationWindow().overlayItem ? applicationWindow().overlayItem : applicationWindow()
-
-            onClosed:{sideDrawer.collapsed=true}
-            height: applicationWindow().height - 50
-            interactive: true
-
-            headerContentItem: RowLayout {
-                Kirigami.Heading {
-                    text: i18n("Upcoming Songs")
-                    elide: Qt.ElideRight
-                    Layout.margins: 0
-                    Layout.fillWidth: true
-                }
+                // 1. Cabecera superior de la Cola (44px)
                 Item {
                     Layout.fillWidth: true
-                }
-                ToolButton {
-                    Layout.topMargin: 0
-                    Layout.bottomMargin: 0
-                    Layout.maximumWidth: height
-                    Layout.preferredWidth: height
-                    text: clearPlaylistButton.text
+                    Layout.preferredHeight: 44
 
-                    ToolTip.text: text
-                    ToolTip.delay: Kirigami.Units.toolTipDelay
-                    ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 16
+                        anchors.rightMargin: 12
+                        spacing: 6
 
-                    icon.name: "edit-clear-all"
-                    display: clearPlaylistButton.display
-                    onClicked: {
-                        UserPlaylistModel.clearExceptCurrent()
+                        CachyLabel {
+                            text: i18n("Upcoming Songs")
+                            font.weight: Font.DemiBold
+                            font.pixelSize: 14
+                            color: CachyPalette.textPrimary
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+
+                        CachyToolbarButton {
+                            implicitWidth: 30
+                            implicitHeight: 30
+                            iconName: "media-playlist-shuffle"
+                            tooltipText: i18n("Shuffle Queue")
+                            enabled: playListView.count > 1
+                            onClicked: UserPlaylistModel.shufflePlaylist()
+                        }
+
+                        CachyToolbarButton {
+                            implicitWidth: 30
+                            implicitHeight: 30
+                            iconName: "edit-clear-all"
+                            tooltipText: i18n("Clear Queue")
+                            enabled: playListView.count > 1
+                            onClicked: UserPlaylistModel.clearExceptCurrent()
+                        }
+
+                        CachyToolbarButton {
+                            implicitWidth: 30
+                            implicitHeight: 30
+                            iconName: "window-close-symbolic"
+                            tooltipText: i18n("Close Queue")
+                            onClicked: sideDrawer.closeDrawer()
+                        }
                     }
-                    enabled: playListView.count != 0
-                }
 
-                ToolButton {
-                    Layout.topMargin: 0
-                    Layout.bottomMargin: 0
-                    Layout.maximumWidth: height
-                    Layout.preferredWidth: height
-                    icon.name: "media-playlist-shuffle"
-                    text: shuffleButton.text
-                    display: shuffleButton.display
-
-                    ToolTip.text: text
-                    ToolTip.delay: Kirigami.Units.toolTipDelay
-                    ToolTip.visible: Kirigami.Settings.isMobile ? pressed : hovered
-
-                    onClicked: {
-                        UserPlaylistModel.shufflePlaylist()
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        height: 1
+                        color: CachyPalette.hardDividerColor
                     }
-                    enabled: playListView.count != 0
                 }
-            }
 
-            drawerContentItem: ScrollView {
-                ListView {
-                    id: drawerListView
-                    topMargin: 10
-                    clip: true
+                // 2. Lista de canciones en la Cola
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
 
-                    reuseItems: true
+                    ScrollView {
+                        id: playListScrollView
+                        anchors.fill: parent
+                        clip: true
 
+                        ListView {
+                            id: playListView
+                            reuseItems: true
+                            spacing: 4
+                            topMargin: 8
+                            bottomMargin: 8
+                            leftMargin: 8
+                            rightMargin: 8
+                            clip: true
+
+                            model: UserPlaylistModel
+
+                            moveDisplaced: Transition {
+                                YAnimator {
+                                    duration: Kirigami.Units.mediumDuration
+                                    easing.type: Easing.InOutQuad
+                                }
+                            }
+
+                            delegate: Item {
+                                id: delegateItem
+                                required property string title
+                                required property string videoId
+                                required property string artists
+                                required property bool isCurrent
+                                required property int index
+                                width: playListView.width - 16
+                                height: queueEntry.implicitHeight
+
+                                ItemDelegate {
+                                    id: queueEntry
+                                    width: parent.width
+                                    padding: 6
+                                    highlighted: delegateItem.isCurrent
+                                    onClicked: UserPlaylistModel.skipTo(delegateItem.videoId)
+
+                                    background: Rectangle {
+                                        radius: CachyTheme.radiusMedium
+                                        color: {
+                                            if (delegateItem.isCurrent) {
+                                                return Qt.rgba(CachyTheme.accentColor.r, CachyTheme.accentColor.g, CachyTheme.accentColor.b, CachyPalette.isDark ? 0.22 : 0.14);
+                                            }
+                                            if (queueEntry.down) {
+                                                return CachyPalette.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.08);
+                                            }
+                                            if (queueEntry.hovered) {
+                                                return CachyPalette.isDark ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.04);
+                                            }
+                                            return "transparent";
+                                        }
+                                        border.width: delegateItem.isCurrent ? 1 : 0
+                                        border.color: delegateItem.isCurrent ? Qt.rgba(CachyTheme.accentColor.r, CachyTheme.accentColor.g, CachyTheme.accentColor.b, 0.50) : "transparent"
+                                    }
+
+                                    contentItem: RowLayout {
+                                        spacing: 8
+
+                                        Item {
+                                            width: handle.width
+                                            height: handle.height
+                                            Kirigami.ListItemDragHandle {
+                                                id: handle
+                                                Layout.fillHeight: true
+                                                listItem: queueEntry
+                                                listView: playListView
+                                                onMoveRequested: (oldIndex, newIndex) => UserPlaylistModel.moveRow(oldIndex, newIndex)
+                                            }
+                                        }
+
+                                        ThumbnailSource {
+                                            id: delegateThumbnailSource
+                                            videoId: delegateItem.videoId
+                                        }
+
+                                        Rectangle {
+                                            Layout.preferredWidth: 38
+                                            Layout.preferredHeight: 38
+                                            radius: CachyTheme.radiusSmall
+                                            clip: true
+                                            color: Qt.rgba(1, 1, 1, 0.08)
+
+                                            Image {
+                                                anchors.fill: parent
+                                                source: delegateThumbnailSource.cachedPath
+                                                fillMode: Image.PreserveAspectCrop
+                                                asynchronous: true
+                                            }
+                                        }
+
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 2
+
+                                            CachyLabel {
+                                                Layout.fillWidth: true
+                                                text: delegateItem.title
+                                                font.weight: delegateItem.isCurrent ? Font.DemiBold : Font.Normal
+                                                font.pixelSize: 13
+                                                color: delegateItem.isCurrent ? CachyTheme.accentColor : CachyPalette.textPrimary
+                                                elide: Text.ElideRight
+                                            }
+
+                                            CachyLabel {
+                                                Layout.fillWidth: true
+                                                text: delegateItem.artists
+                                                font.pixelSize: 11
+                                                color: CachyPalette.textSecondary
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+
+                                        CachyToolbarButton {
+                                            implicitWidth: 26
+                                            implicitHeight: 26
+                                            iconName: "list-remove"
+                                            tooltipText: i18n("Remove Song")
+                                            onClicked: UserPlaylistModel.remove(delegateItem.videoId)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Estado vacío cuando la cola no tiene elementos
+                    ColumnLayout {
+                        anchors.centerIn: parent
+                        visible: playListView.count === 0 && !UserPlaylistModel.loading
+                        spacing: 8
+
+                        CachyIcon {
+                            Layout.alignment: Qt.AlignHCenter
+                            name: "view-media-playlist"
+                            width: 44
+                            height: 44
+                            color: CachyPalette.textTertiary
+                        }
+
+                        CachyLabel {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: i18n("Queue is empty")
+                            font.pixelSize: 13
+                            color: CachyPalette.textSecondary
+                        }
+                    }
+
+                    // Indicador de carga
                     BusyIndicator {
                         anchors.centerIn: parent
-                        visible: UserPlaylistModel.loading || UserPlaylistModel.loading
-                    }
-
-                    model: UserPlaylistModel
-
-                    moveDisplaced: Transition {
-                        YAnimator {
-                            duration: Kirigami.Units.mediumDuration
-                            easing.type: Easing.InOutQuad
-                        }
-                    }
-
-                    delegate: Item {
-                        id: drawerDelegateItem
-                        required property string title
-                        required property string videoId
-                        required property string artists
-                        required property bool isCurrent
-                        required property int index
-
-                        width: drawerListView.width
-                        height: drawerQueueEntry.height
-
-                        ItemDelegate {
-                            id: drawerQueueEntry
-
-                            width: parent.width
-
-                            highlighted: drawerDelegateItem.isCurrent
-                            onClicked: {
-                                queueDrawer.close()
-                                UserPlaylistModel.skipTo(drawerDelegateItem.videoId)
-                            }
-                            contentItem: RowLayout {
-                                Layout.fillWidth: true
-                                Item {
-                                    width: drawerHandle.width
-                                    height: drawerHandle.height
-                                    Kirigami.ListItemDragHandle {
-                                        id: drawerHandle
-                                        Layout.fillHeight: true
-                                        listItem: drawerQueueEntry
-                                        listView: drawerListView
-                                        onMoveRequested: UserPlaylistModel.moveRow(oldIndex, newIndex)
-                                    }
-
-                                    Rectangle {
-                                        visible: GraphicsInfo.api !== GraphicsInfo.Software
-                                        anchors.fill: drawerHandle
-                                        layer.enabled: true
-                                        layer.effect: MultiEffect {
-                                            maskSource: drawerHandle
-                                            maskEnabled: true
-                                        }
-                                    }
-                                }
-                                ThumbnailSource {
-                                    id: drawerDelegateThumbnailSource
-                                    videoId: drawerDelegateItem.videoId
-                                }
-                                RoundedImage {
-                                    source: drawerDelegateThumbnailSource.cachedPath
-
-                                    height: 50
-                                    width: height
-                                    radius: 5
-                                }
-
-                                ColumnLayout {
-                                    Layout.margins: 5
-                                    Layout.fillWidth: true
-                                    Kirigami.Heading {
-                                        elide: Text.ElideRight
-                                        Layout.fillWidth: true
-                                        level: 2
-                                        text: drawerDelegateItem.title
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            ToolTip.text: parent.text
-                                            ToolTip.delay: Kirigami.Units.toolTipDelay
-                                            ToolTip.visible: parent.truncated ? (Kirigami.Settings.isMobile ? containsPress : containsMouse) : false
-                                        }
-                                    }
-
-                                    Label {
-                                        elide: Text.ElideRight
-                                        Layout.fillWidth: true
-                                        color: Kirigami.Theme.disabledTextColor
-                                        text: drawerDelegateItem.artists
-                                    }
-                                }
-
-                                ToolButton {
-                                    text: i18n("Remove Song")
-                                    icon.name: "list-remove"
-                                    display: AbstractButton.IconOnly
-                                    onClicked: UserPlaylistModel.remove(drawerDelegateItem.videoId)
-                                }
-                            }
-                        }
+                        running: UserPlaylistModel.loading
+                        visible: UserPlaylistModel.loading
                     }
                 }
             }
