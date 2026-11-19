@@ -413,20 +413,10 @@ Item {
                         height: 56
                         radius: 28
                         color: CachyTheme.accentColor
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.22)
                         scale: playPauseMouse.pressed ? 0.93 : (playPauseMouse.containsMouse ? 1.05 : 1.0)
                         Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutBack } }
-
-                        // Reflejo especular superior
-                        Rectangle {
-                            anchors.top: parent.top
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: parent.width - 6
-                            height: parent.height / 2
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 1
-                            border.color: Qt.rgba(1, 1, 1, 0.35)
-                        }
 
                         CachyIcon {
                             anchors.centerIn: parent
@@ -550,6 +540,8 @@ Item {
                     // Favorito
                     CachyToolbarButton {
                         id: favouriteButton
+                        implicitWidth: 32
+                        implicitHeight: 32
                         readonly property QtObject favouriteWatcher: Library.favouriteWatcher(root.info.videoId)
                         iconName: favouriteWatcher && favouriteWatcher.isFavourite ? "starred-symbolic" : "non-starred-symbolic"
                         tooltipText: favouriteWatcher && favouriteWatcher.isFavourite ? i18n("Remove from Favorites") : i18n("Add to Favorites")
@@ -578,6 +570,8 @@ Item {
 
                         CachyToolbarButton {
                             id: muteButton
+                            implicitWidth: 32
+                            implicitHeight: 32
                             iconName: {
                                 if (!root.audio || !root.audio.audioOutput) return "audio-volume-medium";
                                 if (root.audio.audioOutput.muted || root.audio.audioOutput.volume === 0) return "audio-volume-muted";
@@ -614,6 +608,8 @@ Item {
                     // Conmutador de Letras
                     CachyToolbarButton {
                         id: lyricsButton
+                        implicitWidth: 32
+                        implicitHeight: 32
                         iconName: "view-media-lyrics"
                         tooltipText: swipeView.currentIndex === 1 ? i18n("Hide Lyrics") : i18n("Show Lyrics")
                         checkable: true
@@ -640,7 +636,9 @@ Item {
                     // Compartir Canción
                     CachyToolbarButton {
                         id: shareButton
-                        iconName: "emblem-shared-symbolic"
+                        implicitWidth: 32
+                        implicitHeight: 32
+                        iconName: "document-share"
                         tooltipText: i18n("Share Song")
                         enabled: root.info.title ? root.info.title.length > 0 : false
                         onClicked: openShareMenu(root.info.title, UserPlaylistModel.webUrl)
@@ -649,6 +647,8 @@ Item {
                     // Añadir a lista de reproducción local
                     CachyToolbarButton {
                         id: addToPlaylistButton
+                        implicitWidth: 32
+                        implicitHeight: 32
                         iconName: "media-playlist-append"
                         tooltipText: i18n("Add to a local playlist")
                         enabled: root.info.videoId ? root.info.videoId.length > 0 : false
@@ -667,6 +667,8 @@ Item {
                     // Conmutador de Cola de reproducción
                     CachyToolbarButton {
                         id: queueButton
+                        implicitWidth: 32
+                        implicitHeight: 32
                         iconName: "amarok_playlist"
                         tooltipText: sideDrawer.visible ? i18n("Hide Queue") : i18n("Show Queue")
                         checkable: true

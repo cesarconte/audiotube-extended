@@ -137,14 +137,15 @@ CachyWindow {
     // =========================================================================
     headerCenter: [
         Item {
-            anchors.verticalCenter: parent.verticalCenter
-            height: parent.height
-            width: Math.min(420, root.width - (root.wideScreen ? 340 : 120))
+            anchors.fill: parent
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
 
             SearchWithDropdown {
                 id: searchLoader
-                anchors.centerIn: parent
-                width: parent.width
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.min(420, parent.width)
                 height: 32
                 visible: root.wideScreen || root.showSearch
             }

@@ -60,7 +60,7 @@ Item {
                 CachySidebarItem {
                     id: searchButton
                     text: i18n("Search")
-                    iconName: "search"
+                    iconName: "edit-find-symbolic"
                     selected: pageStack.currentItem && pageStack.currentItem.objectName === "searchPage"
                     onClicked: {
                         searchField.forceActiveFocus();
