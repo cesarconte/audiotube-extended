@@ -76,7 +76,6 @@ Item {
                     onClicked: {
                         pageStack.clear();
                         pageStack.push(pool.loadPageWithProperties(Qt.resolvedUrl("./PlaybackHistory.qml#favourites"), {
-                            "dataModel": Library.favourites,
                             "title": i18n("Favorites"),
                             "objectName": "favourites"
                         }));
@@ -102,7 +101,6 @@ Item {
                     onClicked: {
                         pageStack.clear();
                         pageStack.push(pool.loadPageWithProperties(Qt.resolvedUrl("./PlaybackHistory.qml#history"), {
-                            "dataModel": Library.playbackHistory,
                             "title": i18n("Played Songs"),
                             "objectName": "history"
                         }));

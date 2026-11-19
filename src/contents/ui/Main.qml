@@ -403,14 +403,12 @@ CachyWindow {
             break;
         case 'favourites':
             page = pool.loadPageWithProperties(Qt.resolvedUrl('./PlaybackHistory.qml#favourites'), {
-                "dataModel": Library.favourites,
                 "title": i18n("Favorites"),
                 "objectName": "favourites"
             });
             break;
         case 'history':
             page = pool.loadPageWithProperties(Qt.resolvedUrl('./PlaybackHistory.qml#history'), {
-                "dataModel": Library.playbackHistory,
                 "title": i18n("Played Songs"),
                 "objectName": "history"
             });

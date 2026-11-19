@@ -29,6 +29,9 @@ Library::Library(QObject *parent)
 {
     m_database->runMigrations(u":/qt/qml/org/kde/audiotube/migrations/"_s);
     m_searches = new SearchHistoryModel(this);
+    m_favourites = new FavouritesModel(this);
+    m_playbackHistory = new PlaybackHistoryModel(this);
+    m_mostPlayed = new PlaybackHistoryModel(this);
 
     refreshFavourites();
     refreshPlaybackHistory();
@@ -62,6 +65,7 @@ void Library::addFavourite(const QString &videoId,
 
 void Library::removeFavourite(const QString &videoId)
 {
+    m_favourites->removeVideo(videoId);
     QCoro::connect(m_database->execute(u"delete from favourites where video_id = ?"_s, videoId),
                    this, &Library::refreshFavourites);
 }
@@ -112,12 +116,12 @@ void Library::refreshPlaybackHistory()
     // playbackHistory
     auto future = m_database->getResults<PlayedSong>(
         u"select * from played_songs natural join songs order by played_songs.rowid desc"_s);
-    m_playbackHistory = new PlaybackHistoryModel(std::move(future), this);
+    m_playbackHistory->setSongs(std::move(future));
 
     // mostPlayed
     auto future2 = m_database->getResults<PlayedSong>(
         u"select * from played_songs natural join songs order by plays desc limit 10"_s);
-    m_mostPlayed = new PlaybackHistoryModel(std::move(future2), this);
+    m_mostPlayed->setSongs(std::move(future2));
     Q_EMIT playbackHistoryChanged();
 }
 
@@ -125,7 +129,7 @@ void Library::refreshFavourites()
 {
     auto future = m_database->getResults<Song>(
         u"select * from favourites natural join songs order by favourites.rowid desc"_s);
-    m_favourites = new FavouritesModel(std::move(future), this);
+    m_favourites->setSongs(std::move(future));
     Q_EMIT favouritesChanged();
 }
 
@@ -145,6 +149,8 @@ void Library::addPlaybackHistoryItem(const QString &videoId,
 }
 void Library::removePlaybackHistoryItem(const QString &videoId)
 {
+    m_playbackHistory->removeVideo(videoId);
+    m_mostPlayed->removeVideo(videoId);
     QCoro::connect(m_database->execute(u"delete from played_songs where video_id = ?"_s, videoId),
                    this, &Library::refreshPlaybackHistory);
 }
@@ -239,6 +245,27 @@ std::vector<PlayedSong> PlaybackHistoryModel::getPlayedSong() const
     return m_playedSongs;
 }
 
+void PlaybackHistoryModel::setSongs(QFuture<std::vector<PlayedSong>> &&songs)
+{
+    QCoro::connect(std::move(songs), this, [this](const auto &songs) {
+        beginResetModel();
+        m_playedSongs = songs;
+        endResetModel();
+    });
+}
+
+void PlaybackHistoryModel::removeVideo(const QString &videoId)
+{
+    for (size_t i = 0; i < m_playedSongs.size(); ++i) {
+        if (m_playedSongs[i].videoId == videoId) {
+            beginRemoveRows(QModelIndex(), static_cast<int>(i), static_cast<int>(i));
+            m_playedSongs.erase(m_playedSongs.begin() + i);
+            endRemoveRows();
+            break;
+        }
+    }
+}
+
 
 FavouritesModel::FavouritesModel(QFuture<std::vector<Song>> &&songs, QObject *parent)
     : QAbstractListModel(parent)
@@ -248,6 +275,32 @@ FavouritesModel::FavouritesModel(QFuture<std::vector<Song>> &&songs, QObject *pa
         m_favouriteSongs = songs;
         endResetModel();
     });
+}
+
+FavouritesModel::FavouritesModel(QObject *parent)
+    : QAbstractListModel(parent)
+{
+}
+
+void FavouritesModel::setSongs(QFuture<std::vector<Song>> &&songs)
+{
+    QCoro::connect(std::move(songs), this, [this](const auto &songs) {
+        beginResetModel();
+        m_favouriteSongs = songs;
+        endResetModel();
+    });
+}
+
+void FavouritesModel::removeVideo(const QString &videoId)
+{
+    for (size_t i = 0; i < m_favouriteSongs.size(); ++i) {
+        if (m_favouriteSongs[i].videoId == videoId) {
+            beginRemoveRows(QModelIndex(), static_cast<int>(i), static_cast<int>(i));
+            m_favouriteSongs.erase(m_favouriteSongs.begin() + i);
+            endRemoveRows();
+            break;
+        }
+    }
 }
 
 QHash<int, QByteArray> FavouritesModel::roleNames() const {

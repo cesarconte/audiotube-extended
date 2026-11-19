@@ -46,11 +46,14 @@ class FavouritesModel : public QAbstractListModel {
 
 public:
     FavouritesModel(QFuture<std::vector<Song>> &&songs, QObject *parent = nullptr);
+    FavouritesModel(QObject *parent = nullptr);
 
     QHash<int, QByteArray> roleNames() const override;
     int rowCount(const QModelIndex &parent) const override;
     QVariant data(const QModelIndex &index, int role) const override;
     std::vector<Song> getFavouriteSongs() const;
+    void setSongs(QFuture<std::vector<Song>> &&songs);
+    void removeVideo(const QString &videoId);
 
 private:
     std::vector<Song> m_favouriteSongs;
@@ -92,6 +95,8 @@ public:
     int rowCount(const QModelIndex &parent) const override;
     QVariant data(const QModelIndex &index, int role) const override;
     std::vector<PlayedSong> getPlayedSong() const;
+    void setSongs(QFuture<std::vector<PlayedSong>> &&songs);
+    void removeVideo(const QString &videoId);
 
 protected:
     std::vector<PlayedSong> m_playedSongs;
