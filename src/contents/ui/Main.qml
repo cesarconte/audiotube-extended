@@ -27,9 +27,10 @@ CachyWindow {
     resizable: true
     cornerRadius: CachyTheme.radiusWindow
     contentPadded: false
-    sidebarWidth: sidebar.sidebarWidth
-    sidebarVisible: wideScreen
+    sidebarWidth: 240
+    sidebarVisible: root.showSidebar && root.wideScreen
 
+    property bool showSidebar: true
     readonly property alias pageStack: pageStack
     property alias searchField: searchLoader
     property bool wideScreen: width >= 600
@@ -110,12 +111,12 @@ CachyWindow {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 6
 
-            // Control de colapso/expansión de la barra lateral (estándar Golden Gate en headerLeading)
+            // Control de visibilidad de la barra lateral (patrón estándar Golden Gate: kquicknote, kphonemirroring, kvoicememos)
             CachyToolbarButton {
-                iconName: sidebar.collapsed ? "sidebar-expand-symbolic" : "sidebar-collapse-symbolic"
-                tooltipText: sidebar.collapsed ? i18n("Expand Sidebar") : i18n("Collapse Sidebar")
+                iconName: root.showSidebar ? "sidebar-collapse-symbolic" : "sidebar-expand-symbolic"
+                tooltipText: root.showSidebar ? i18n("Ocultar barra lateral") : i18n("Mostrar barra lateral")
                 visible: root.wideScreen
-                onClicked: sidebar.toggleCollapse()
+                onClicked: root.showSidebar = !root.showSidebar
             }
 
             CachyToolbarButton {
