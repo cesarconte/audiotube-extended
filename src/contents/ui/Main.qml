@@ -103,24 +103,33 @@ CachyWindow {
     }
 
     // =========================================================================
-    // CABECERA — Navegación atrás / adelante
+    // CABECERA — Navegación y control de barra lateral
     // =========================================================================
     headerLeading: [
         RowLayout {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 6
-            visible: root.wideScreen
+
+            // Control de colapso/expansión de la barra lateral (estándar Golden Gate en headerLeading)
+            CachyToolbarButton {
+                iconName: sidebar.collapsed ? "sidebar-expand-symbolic" : "sidebar-collapse-symbolic"
+                tooltipText: sidebar.collapsed ? i18n("Expand Sidebar") : i18n("Collapse Sidebar")
+                visible: root.wideScreen
+                onClicked: sidebar.toggleCollapse()
+            }
 
             CachyToolbarButton {
                 iconName: "draw-arrow-back"
                 tooltipText: i18nc("@action:button", "Back")
                 enabled: pageStack.depth > 1
+                visible: root.wideScreen || pageStack.depth > 1
                 onClicked: pageStack.goBack()
             }
             CachyToolbarButton {
                 iconName: "draw-arrow-forward"
                 tooltipText: i18nc("@action:button", "Forward")
                 enabled: pageStack.currentIndex < pageStack.depth - 1
+                visible: root.wideScreen
                 onClicked: pageStack.goForward()
             }
         }
@@ -142,18 +151,6 @@ CachyWindow {
                 height: 32
                 visible: root.wideScreen || root.showSearch
             }
-        }
-    ]
-
-    // =========================================================================
-    // BARRA LATERAL — Acciones en la cabecera del sidebar (Colapsar/Expandir)
-    // =========================================================================
-    sidebarHeaderActions: [
-        CachyToolbarButton {
-            anchors.verticalCenter: parent.verticalCenter
-            iconName: sidebar.collapsed ? "sidebar-expand-symbolic" : "sidebar-collapse-symbolic"
-            tooltipText: sidebar.collapsed ? i18n("Expand Sidebar") : i18n("Collapse Sidebar")
-            onClicked: sidebar.toggleCollapse()
         }
     ]
 

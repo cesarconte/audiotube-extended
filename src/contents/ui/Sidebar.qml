@@ -17,6 +17,13 @@ Item {
     property int sidebarWidthCollapsed: 64
     property int sidebarWidth: collapsed ? sidebarWidthCollapsed : sidebarWidthExpanded
 
+    Behavior on sidebarWidth {
+        NumberAnimation {
+            duration: CachyTheme.animFast
+            easing.type: Easing.OutCubic
+        }
+    }
+
     function toggleCollapse() {
         collapsed = !collapsed;
     }
