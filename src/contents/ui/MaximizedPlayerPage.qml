@@ -769,11 +769,11 @@ Item {
                         anchors.rightMargin: 12
                         spacing: 6
 
-                        CachyLabel {
+                        Controls.Label {
                             text: i18n("Upcoming Songs")
                             font.weight: Font.DemiBold
                             font.pixelSize: 14
-                            color: CachyPalette.textPrimary
+                            color: CachyPalette.text
                             Layout.fillWidth: true
                             elide: Text.ElideRight
                         }
@@ -917,16 +917,16 @@ Item {
                                             Layout.fillWidth: true
                                             spacing: 2
 
-                                            CachyLabel {
+                                            Controls.Label {
                                                 Layout.fillWidth: true
                                                 text: delegateItem.title
                                                 font.weight: delegateItem.isCurrent ? Font.DemiBold : Font.Normal
                                                 font.pixelSize: 13
-                                                color: delegateItem.isCurrent ? CachyTheme.accentColor : CachyPalette.textPrimary
+                                                color: delegateItem.isCurrent ? CachyTheme.accentColor : CachyPalette.text
                                                 elide: Text.ElideRight
                                             }
 
-                                            CachyLabel {
+                                            Controls.Label {
                                                 Layout.fillWidth: true
                                                 text: delegateItem.artists
                                                 font.pixelSize: 11
@@ -959,10 +959,10 @@ Item {
                             name: "view-media-playlist"
                             width: 44
                             height: 44
-                            color: CachyPalette.textTertiary
+                            color: CachyPalette.textMuted
                         }
 
-                        CachyLabel {
+                        Controls.Label {
                             Layout.alignment: Qt.AlignHCenter
                             text: i18n("Queue is empty")
                             font.pixelSize: 13
