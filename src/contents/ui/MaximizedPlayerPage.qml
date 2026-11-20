@@ -516,16 +516,18 @@ Item {
                         horizontalAlignment: Text.AlignRight
                     }
 
-                    CachySlider {
+                    CachyWaveformSlider {
                         id: timelineSlider
                         Layout.fillWidth: true
-                        accentColor: CachyTheme.accentColor
-                        from: 0
-                        to: Math.max(1, root.audio.duration)
-                        value: root.audio.position
-                        enabled: root.audio.seekable
-                        onMoved: {
-                            root.audio.position = Math.floor(value);
+                        Layout.preferredHeight: 32
+                        progressColor: CachyTheme.accentColor
+                        position: root.audio.duration > 0 ? (root.audio.position / root.audio.duration) : 0
+                        duration: root.audio.duration
+                        interactive: root.audio.seekable
+                        onSeekRequested: (targetPos) => {
+                            if (root.audio && root.audio.duration > 0) {
+                                root.audio.position = Math.floor(targetPos * root.audio.duration);
+                            }
                         }
                     }
 
