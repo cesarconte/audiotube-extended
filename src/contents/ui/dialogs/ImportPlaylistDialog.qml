@@ -1,26 +1,55 @@
 // SPDX-FileCopyrightText: 2023 Mathis Brüchert <mbb@kaidan.im>
-//
+// SPDX-FileCopyrightText: 2026 CachyOS UI contributors
 // SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
 
 import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
-import org.kde.kirigami as Kirigami
+import CachyOS.UI
 
-import org.kde.audiotube
-
-Kirigami.PromptDialog {
-    property QtObject model
+Controls.Dialog {
     id: importPlaylistDialog
-    title: i18n("Import playlist")
-    standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
-    mainItem: Kirigami.FormLayout {
-        Controls.TextField {
-            id: urlField
+    property QtObject model
 
-            Kirigami.FormData.label: i18n("Playlist URL (Youtube)")
+    title: i18n("Import playlist")
+    standardButtons: Controls.Dialog.Ok | Controls.Dialog.Cancel
+    anchors.centerIn: parent
+    width: Math.min(parent ? parent.width - 32 : 360, 360)
+    modal: true
+
+    background: Rectangle {
+        radius: CachyTheme.radiusLarge
+        color: CachyTheme.isDark ? Qt.rgba(0.12, 0.12, 0.16, 0.98) : Qt.rgba(0.97, 0.98, 1.0, 0.98)
+        border.width: 1
+        border.color: CachyTheme.specularBorder
+    }
+
+    onOpened: {
+        urlField.text = ""
+        urlField.forceActiveFocus()
+    }
+
+    contentItem: ColumnLayout {
+        spacing: 12
+        width: parent.width
+
+        Text {
+            text: i18n("Playlist URL (Youtube)")
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+            color: CachyTheme.textSecondary
+        }
+
+        CachyTextField {
+            id: urlField
+            Layout.fillWidth: true
+            placeholderText: "https://music.youtube.com/playlist?list=..."
         }
     }
 
-    onAccepted: model.importPlaylist(urlField.text)
+    onAccepted: {
+        if (model && urlField.text.trim().length > 0) {
+            model.importPlaylist(urlField.text.trim())
+        }
+    }
 }
